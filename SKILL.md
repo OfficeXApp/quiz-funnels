@@ -2,8 +2,8 @@
 name: quiz-funnels
 description: |
   REST API client for the Quiz Funnels app on OfficeX. Declarative quiz and funnel builder with scoring, conditional routing, intent-based personalization, video tracking, and Stripe checkout.
-  Use when: (1) Creating or managing quiz/funnel schemas via API, (2) Pushing quiz JSON configs, (3) Querying funnel analytics and visitor journeys, (4) Managing API keys, (5) Uploading and transcoding videos for quizzes, (6) Creating Stripe checkout sessions.
-  Triggers: quiz funnel, quiz builder, quiz scoring, quiz api, lead quiz, personality quiz, assessment quiz, funnel builder, conversion quiz, interactive quiz
+  Use when: (1) Creating or managing quiz/funnel schemas via API, (2) Pushing quiz JSON configs, (3) Querying funnel analytics and visitor journeys, (4) Managing API keys, (5) Uploading and transcoding videos for quizzes, (6) Creating Stripe checkout sessions, (7) Setting up A/B split tests for quiz traffic routing.
+  Triggers: quiz funnel, quiz builder, quiz scoring, quiz api, lead quiz, personality quiz, assessment quiz, funnel builder, conversion quiz, interactive quiz, split test, ab test, traffic split
 ---
 
 # Quiz Funnels -- API Skill
@@ -155,7 +155,31 @@ Delete a quiz.
 
 #### GET /public/catalogs/:subdomain/:slug
 
-Fetch a published quiz schema for rendering.
+Fetch a published quiz schema. Resolution order: direct catalog → active split test → slug redirect → 404. Split test responses include `split_test` metadata.
+
+---
+
+### Split Tests (A/B Routing)
+
+#### POST /api/v1/split-tests
+
+Create a split test — route one slug to multiple quiz variants with weighted traffic distribution.
+
+```json
+{
+  "slug": "marketing-quiz",
+  "name": "Quiz A/B Test",
+  "destinations": [
+    { "slug": "quiz-v1", "weight": 50, "label": "Control" },
+    { "slug": "quiz-v2", "weight": 50, "label": "Variant A" }
+  ]
+}
+```
+
+- GET /api/v1/split-tests -- List all
+- GET /api/v1/split-tests/:slug -- Get one
+- PUT /api/v1/split-tests/:slug -- Update (name, destinations, status: active|paused)
+- DELETE /api/v1/split-tests/:slug -- Delete
 
 ---
 
