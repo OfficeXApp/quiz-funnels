@@ -1,9 +1,9 @@
 ---
 name: quiz-funnels
 description: |
-  Build and manage interactive quizzes, assessments, and lead-capture funnels with your AI agent. Create scored quizzes from JSON schemas, publish them instantly, run A/B tests, and track analytics — all through conversation.
-  Use when: (1) Creating or updating a quiz/assessment/funnel, (2) Checking analytics like visitors, scores, and drop-off rates, (3) Running A/B tests on quiz variants, (4) AI-routing visitors to the right quiz variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for quizzes, (7) Viewing individual visitor journeys and quiz scores, (8) Reviewing answer distributions, (9) Creating sandboxes to safely edit quizzes without affecting production, (10) Using the element inspector to get exact component references for AI agents.
-  Triggers: quiz funnel, quiz builder, quiz scoring, quiz api, lead quiz, personality quiz, assessment quiz, funnel builder, conversion quiz, interactive quiz, split test, ab test, create quiz, ai routing, variant routing, hint routing, sandbox, element inspector, devtools
+  Build and manage interactive quizzes, assessments, and lead-capture funnels with your AI agent. Create scored quizzes from JSON schemas, publish them instantly, run A/B tests with weighted variants, and track analytics — all through conversation.
+  Use when: (1) Creating or updating a quiz/assessment/funnel, (2) Checking analytics like visitors, scores, and drop-off rates, (3) Running A/B tests with weighted variants, (4) AI-routing visitors to the right quiz variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for quizzes, (7) Viewing individual visitor journeys and quiz scores, (8) Reviewing answer distributions, (9) Creating sandboxes to safely edit quizzes without affecting production, (10) Using the element inspector to get exact component references for AI agents.
+  Triggers: quiz funnel, quiz builder, quiz scoring, quiz api, lead quiz, personality quiz, assessment quiz, funnel builder, conversion quiz, interactive quiz, ab test, create quiz, ai routing, variant routing, hint routing, weighted variants, sandbox, element inspector, devtools
 ---
 
 # Quiz Funnels
@@ -15,10 +15,10 @@ Build and manage interactive quizzes, assessments, and lead-capture funnels — 
 ## What You Can Do
 
 - **Create quizzes** — build scored assessments, personality quizzes, lead qualification funnels from a JSON schema
-- **Publish instantly** — quizzes go live at `https://yourname.catalogs.cloud.zoomgtm.com/your-quiz-slug`
+- **Publish instantly** — quizzes go live at your custom domain or via user_id path
 - **Check analytics** — see visitors, completion rates, score distributions, page drop-off, and revenue
 - **View answer breakdowns** — see how visitors answered each question (e.g. "56% chose Option A")
-- **Run A/B tests** — split traffic between quiz variants to optimize conversions
+- **Run A/B tests** — use weighted variants to split traffic to optimize conversions
 - **AI variant routing** — auto-route visitors to the best quiz variant using natural language hints
 - **Sandbox editing** — clone a quiz to safely make changes without affecting the live version, then promote when ready
 - **Element inspector** — hold Shift+Alt to hover-inspect any element and copy its exact `pageId/componentId` reference for AI agents
@@ -101,7 +101,7 @@ POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
 }
 ```
 
-- `slug` — URL-friendly name (lowercase, hyphens). Your quiz will be live at `https://yourname.catalogs.cloud.zoomgtm.com/marketing-quiz`
+- `slug` — URL-friendly name (lowercase, hyphens). Your quiz will be live at your configured domain
 - `status` — `"published"` (live) or `"draft"` (hidden). Default: `"published"`
 - `visibility` — `"public"` (listed) or `"unlisted"` (link-only). Default: `"unlisted"`
 
@@ -115,7 +115,7 @@ POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
     "name": "Marketing Knowledge Quiz",
     "status": "published",
     "visibility": "public",
-    "url": "https://yourname.catalogs.cloud.zoomgtm.com/marketing-quiz"
+    "url": "https://catalogs.cloud.zoomgtm.com/USER_ID/marketing-quiz"
   }
 }
 ```
@@ -267,35 +267,23 @@ Returns every event in chronological order with a summary: total events, first/l
 
 ---
 
-## A/B Split Tests
+## A/B Testing with Weighted Variants
 
-Test different quiz versions to find what converts best. Split tests route visitors to different quiz variants based on weighted traffic distribution.
-
-### Create a split test
-
-```
-POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/split-tests
-```
+Test different versions of your quiz by adding weighted variants to your schema. Set `variant_routing: "random"` for weighted random routing, `"hint"` for AI-based routing, or `"hybrid"` for both.
 
 ```json
 {
-  "slug": "marketing-quiz",
-  "name": "Marketing Quiz A/B Test",
-  "destinations": [
-    { "slug": "marketing-quiz-v1", "weight": 50, "label": "Control" },
-    { "slug": "marketing-quiz-v2", "weight": 50, "label": "Shorter version" }
-  ]
+  "schema": {
+    "variant_routing": "random",
+    "variants": [
+      { "id": "v1", "slug": "control", "weight": 50, "description": "Original" },
+      { "id": "v2", "slug": "new-headline", "weight": 50, "description": "New headline" }
+    ]
+  }
 }
 ```
 
-The `slug` is the URL visitors see. They get routed to one of the destination quizzes based on weights. Visitors are sticky — they always see the same variant on return visits.
-
-### Other split test operations
-
-- `GET /api/v1/split-tests` — List all split tests
-- `GET /api/v1/split-tests/:slug` — Get one split test
-- `PUT /api/v1/split-tests/:slug` — Update (change `name`, `destinations`, or `status`: `"active"` / `"paused"`)
-- `DELETE /api/v1/split-tests/:slug` — Delete a split test
+Variants with `target_slug` route visitors to a different quiz entirely. Variants without `target_slug` apply personalization hints within the same quiz.
 
 ---
 
@@ -511,14 +499,14 @@ Automatically route visitors to the best quiz variant using natural language hin
 ### Route a visitor with a hint (GET — query param)
 
 ```
-# Using subdomain:
-GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?subdomain=yourname&slug=marketing-quiz&hint="female entrepreneur interested in social media"
+# Using user_id:
+GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?user_id=USER_ID&slug=marketing-quiz&hint="female entrepreneur interested in social media"
 
 # Using custom domain instead:
 GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?domain=funnels.mycompany.com&slug=marketing-quiz&hint="female entrepreneur interested in social media"
 ```
 
-> **Note:** Use quotes around the hint value for readability — browsers automatically encode `"` to `%22` and spaces to `+`/`%20`. Both `hint`/`hints` and `subdomain`/`domain` are accepted.
+> **Note:** Use quotes around the hint value for readability — browsers automatically encode `"` to `%22` and spaces to `+`/`%20`. Both `hint`/`hints` and `user_id`/`domain` are accepted.
 
 ### Route a visitor with a hint (POST — JSON body)
 
@@ -528,13 +516,13 @@ If URL encoding is a concern, use the POST alternative with a JSON body:
 curl -X POST https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant \
   -H "Content-Type: application/json" \
   -d '{
-    "subdomain": "yourname",
+    "user_id": "USER_ID",
     "slug": "marketing-quiz",
     "hint": "female entrepreneur interested in social media"
   }'
 ```
 
-Both `hint`/`hints` and `subdomain`/`domain` are accepted.
+Both `hint`/`hints` and `user_id`/`domain` are accepted.
 
 **Response (same for GET and POST):**
 ```json
@@ -551,20 +539,20 @@ Both `hint`/`hints` and `subdomain`/`domain` are accepted.
 
 ### Frontend hint URLs
 
-The frontend handles AI routing automatically — just add `hint` to the URL. Works on both subdomain URLs and custom domains:
+The frontend handles AI routing automatically — just add `hint` to the URL. Works with path-based URLs and custom domains:
 
 ```
-# Subdomain URL:
-https://yourname.catalogs.cloud.zoomgtm.com/marketing-quiz?hint="female entrepreneur"&ref=253
+# Path-based URL:
+https://catalogs.cloud.zoomgtm.com/USER_ID/marketing-quiz?hint="female entrepreneur"&ref=253
 
 # Custom domain URL (works the same way):
 https://funnels.mycompany.com/marketing-quiz?hint="female entrepreneur"&ref=253
 
 # Silent redirect (for affiliates — suppresses event tracking):
-https://yourname.catalogs.cloud.zoomgtm.com/marketing-quiz?hint="problem aware male"&silent_redirect=true&ref=253
+https://catalogs.cloud.zoomgtm.com/USER_ID/marketing-quiz?hint="problem aware male"&silent_redirect=true&ref=253
 
 # After AI routing resolves, browser URL updates to:
-https://yourname.catalogs.cloud.zoomgtm.com/marketing-quiz/problem-aware-male?ref=253
+https://catalogs.cloud.zoomgtm.com/USER_ID/marketing-quiz/problem-aware-male?ref=253
 ```
 
 The base quiz renders instantly while AI routing resolves in the background. Visitors never see a loading screen — the variant swap is seamless.
@@ -597,7 +585,7 @@ POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/sandbox
     "name": "Marketing Knowledge Quiz (Sandbox: redesign-v2)",
     "sandbox_of": "01HXY...",
     "parent_slug": "marketing-quiz",
-    "url": "https://yourname.catalogs.cloud.zoomgtm.com/marketing-quiz--redesign-v2"
+    "url": "https://catalogs.cloud.zoomgtm.com/USER_ID/marketing-quiz--redesign-v2"
   }
 }
 ```
