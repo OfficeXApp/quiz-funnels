@@ -1,76 +1,68 @@
 ---
 name: quiz-funnels
 description: |
-  REST API client for the Quiz Funnels app on OfficeX. Declarative quiz and funnel builder with scoring, conditional routing, intent-based personalization, video tracking, and Stripe checkout.
-  Use when: (1) Creating or managing quiz/funnel schemas via API, (2) Pushing quiz JSON configs, (3) Querying funnel analytics and visitor journeys, (4) Managing API keys, (5) Uploading and transcoding videos for quizzes, (6) Creating Stripe checkout sessions, (7) Setting up A/B split tests for quiz traffic routing.
-  Triggers: quiz funnel, quiz builder, quiz scoring, quiz api, lead quiz, personality quiz, assessment quiz, funnel builder, conversion quiz, interactive quiz, split test, ab test, traffic split
+  Build and manage interactive quizzes, assessments, and lead-capture funnels with your AI agent. Create scored quizzes from JSON schemas, publish them instantly, run A/B tests, and track analytics — all through conversation.
+  Use when: (1) Creating or updating a quiz/assessment/funnel, (2) Checking analytics like visitors, scores, and drop-off rates, (3) Running A/B tests on quiz variants, (4) Managing API keys for team access, (5) Uploading videos for quizzes, (6) Viewing individual visitor journeys and quiz scores, (7) Reviewing answer distributions.
+  Triggers: quiz funnel, quiz builder, quiz scoring, quiz api, lead quiz, personality quiz, assessment quiz, funnel builder, conversion quiz, interactive quiz, split test, ab test, create quiz
 ---
 
-# Quiz Funnels -- API Skill
+# Quiz Funnels
 
-Declarative quiz and funnel builder SaaS. Define quizzes, assessments, and multi-step funnels as JSON/TypeScript schemas with 56+ component types, quiz scoring, conditional routing, intent-based personalization, popup triggers, video tracking, cart/checkout, and analytics. AI agents use this API to CRUD quiz funnels and query conversion data.
+Build and manage interactive quizzes, assessments, and lead-capture funnels — directly through your AI agent. Create scored quizzes with 56+ component types, automatic grading, conditional routing based on scores, and full analytics on how visitors answer.
 
 > **Install on OfficeX:** [officex.app/store/en/app/quiz-funnels](https://officex.app/store/en/app/quiz-funnels)
 
-## Prerequisites
+## What You Can Do
 
-After installing the app on OfficeX, you receive credentials via the install webhook. Or self-signup at the frontend and create API keys from Settings.
+- **Create quizzes** — build scored assessments, personality quizzes, lead qualification funnels from a JSON schema
+- **Publish instantly** — quizzes go live at `https://yourname.catalogs.cloud.zoomgtm.com/your-quiz-slug`
+- **Check analytics** — see visitors, completion rates, score distributions, page drop-off, and revenue
+- **View answer breakdowns** — see how visitors answered each question (e.g. "56% chose Option A")
+- **Run A/B tests** — split traffic between quiz variants to optimize conversions
+- **View visitor journeys** — trace exactly what each visitor did, including their quiz score
+- **Manage access** — create API keys for team members or integrations
+- **Upload videos** — add video content with automatic HLS transcoding
+
+## Getting Started
+
+After installing Quiz Funnels on OfficeX, you receive credentials automatically. You can also sign up at the dashboard and create API keys from Settings.
 
 ```bash
-# Option A: OfficeX install credentials
-OFFICEX_INSTALL_ID="your_install_id"
-OFFICEX_INSTALL_SECRET="your_install_secret"
-
-# Option B: API key (created from Settings page)
+# Your API key (created from Settings page or received on install)
 CF_API_KEY="cfk_..."
 
-# API base URL
+# Production API
 CF_API_URL="https://catalog-funnel-api.cloud.zoomgtm.com"
 ```
 
-## Authentication
+### Authentication
 
-**OfficeX credentials:** Bearer token = Base64(install_id:install_secret)
+Pass your API key as a Bearer token on all requests:
+
+```bash
+curl -H "Authorization: Bearer cfk_..." \
+  https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
+```
+
+If you installed via OfficeX, you can also use your install credentials:
 
 ```bash
 TOKEN=$(echo -n "${OFFICEX_INSTALL_ID}:${OFFICEX_INSTALL_SECRET}" | base64)
-curl -H "Authorization: Bearer $TOKEN" $CF_API_URL/api/v1/catalogs
-```
-
-**API key:** Pass the `cfk_...` token directly as Bearer.
-
-```bash
-curl -H "Authorization: Bearer cfk_..." $CF_API_URL/api/v1/catalogs
-```
-
-## API Reference
-
-### Base URLs
-
-| Stage | API URL |
-|---|---|
-| Production | `https://catalog-funnel-api.cloud.zoomgtm.com` |
-| Staging | `https://catalog-funnel-api-staging.cloud.zoomgtm.com` |
-
-Frontend: `https://{subdomain}.catalogs.cloud.zoomgtm.com/{quiz-slug}`
-
-### GET /health
-
-Health check (unauthenticated).
-
-```json
-{ "ok": true, "stage": "production" }
+curl -H "Authorization: Bearer $TOKEN" \
+  https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
 ```
 
 ---
 
-### Catalogs (CRUD)
+## Managing Quizzes
 
-All catalog endpoints require authentication. Quizzes are catalogs with quiz-scored components.
+Quizzes are catalogs with quiz-scored components. All the same CRUD operations apply.
 
-#### GET /api/v1/catalogs
+### List your quizzes
 
-List all catalogs/quizzes for the authenticated user.
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
+```
 
 **Response:**
 ```json
@@ -80,7 +72,7 @@ List all catalogs/quizzes for the authenticated user.
     {
       "catalog_id": "01HXY...",
       "slug": "marketing-quiz",
-      "name": "Marketing Quiz",
+      "name": "Marketing Knowledge Quiz",
       "status": "published",
       "visibility": "public",
       "created_at": "2024-01-01T00:00:00Z",
@@ -90,11 +82,12 @@ List all catalogs/quizzes for the authenticated user.
 }
 ```
 
-#### POST /api/v1/catalogs
+### Create a quiz
 
-Create a new quiz funnel.
+```
+POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
+```
 
-**Request Body:**
 ```json
 {
   "slug": "marketing-quiz",
@@ -105,10 +98,9 @@ Create a new quiz funnel.
 }
 ```
 
-- `slug`: lowercase alphanumeric with hyphens
-- `schema`: CatalogSchema object (see Schema section below)
-- `status`: `"published"` | `"draft"` (default: `"published"`)
-- `visibility`: `"public"` | `"unlisted"` (default: `"unlisted"`)
+- `slug` — URL-friendly name (lowercase, hyphens). Your quiz will be live at `https://yourname.catalogs.cloud.zoomgtm.com/marketing-quiz`
+- `status` — `"published"` (live) or `"draft"` (hidden). Default: `"published"`
+- `visibility` — `"public"` (listed) or `"unlisted"` (link-only). Default: `"unlisted"`
 
 **Response (201):**
 ```json
@@ -125,106 +117,114 @@ Create a new quiz funnel.
 }
 ```
 
-#### GET /api/v1/catalogs/:id
+### View a quiz
 
-Get a single quiz with full schema.
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id
+```
 
-#### PUT /api/v1/catalogs/:id
+Returns the full quiz including its schema.
 
-Update a quiz. Supports partial updates. Slug changes can create redirects.
+### Update a quiz
 
-**Request Body (all fields optional):**
+```
+PUT https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id
+```
+
+All fields are optional — only send what you want to change:
+
 ```json
 {
-  "slug": "new-slug",
-  "name": "Updated Name",
+  "name": "Updated Quiz Name",
   "schema": { ... },
   "status": "draft",
-  "visibility": "public",
+  "slug": "new-quiz-slug",
   "old_slug_action": "redirect"
 }
 ```
 
-#### DELETE /api/v1/catalogs/:id
+When changing the slug, `old_slug_action` controls what happens to the old URL:
+- `"redirect"` (default) — old URL redirects to the new one
+- `"release"` — old URL becomes available for reuse
 
-Delete a quiz.
+### Delete a quiz
 
----
-
-### Public Catalog Fetch (No Auth)
-
-#### GET /public/catalogs/:subdomain/:slug
-
-Fetch a published quiz schema. Resolution order: direct catalog → active split test → slug redirect → 404. Split test responses include `split_test` metadata.
+```
+DELETE https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id
+```
 
 ---
 
-### Split Tests (A/B Routing)
+## Analytics & Results
 
-#### POST /api/v1/split-tests
+All analytics endpoints require authentication. Each analytics call costs **1 credit**. Event tracking (visitor activity) is **free**.
 
-Create a split test — route one slug to multiple quiz variants with weighted traffic distribution.
+### Overview metrics
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id
+```
+
+**Query params:** `start`, `end` (ISO dates, e.g. `2024-01-01`)
+
+Returns aggregate metrics: unique visitors, total page views, form submissions, conversion rate, page-level views, variant breakdown, referrer sources, checkout stats, and revenue.
+
+### Timeseries (daily/hourly trends)
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/timeseries
+```
+
+**Query params (required):** `start`, `end` (ISO dates), `interval` (`day` or `hour`)
 
 ```json
 {
-  "slug": "marketing-quiz",
-  "name": "Quiz A/B Test",
-  "destinations": [
-    { "slug": "quiz-v1", "weight": 50, "label": "Control" },
-    { "slug": "quiz-v2", "weight": 50, "label": "Variant A" }
+  "ok": true,
+  "data": [
+    { "date": "2024-01-01", "page_views": 150, "sessions": 80, "form_submits": 25, "checkout_completes": 5, "revenue_cents": 4900 }
   ]
 }
 ```
 
-- GET /api/v1/split-tests -- List all
-- GET /api/v1/split-tests/:slug -- Get one
-- PUT /api/v1/split-tests/:slug -- Update (name, destinations, status: active|paused)
-- DELETE /api/v1/split-tests/:slug -- Delete
+### Drop-off analysis
 
----
+See exactly where visitors abandon your quiz:
 
-### Analytics
-
-All analytics endpoints require authentication with `analytics:read` permission. Each call costs **1 credit**. Event ingestion is FREE.
-
-Events are stored in a dedicated analytics DynamoDB table with 180-day TTL. Daily and hourly rollup counters are atomically incremented for fast timeseries queries.
-
-#### GET /api/v1/analytics/catalogs/:id
-
-Aggregate funnel metrics: unique visitors, conversions, page drop-off, field completions, variant breakdown, referrer sources, checkout stats, revenue.
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/dropoff
+```
 
 **Query params:** `start`, `end` (ISO dates)
 
-#### GET /api/v1/analytics/catalogs/:id/events
-
-Raw events with filters and cursor pagination.
-
-**Query params:** `start`, `end`, `cursor`, `limit` (default 100, max 500), `event_type`, `page_id`, `component_id`, `variant_slug`, `utm_source`, `utm_medium`, `utm_campaign`, `referrer`
-
-#### GET /api/v1/analytics/catalogs/:id/timeseries
-
-Rollup timeseries — fast pre-computed counters.
-
-**Query params (required):** `start`, `end`, `interval` (`day` or `hour`)
-
-**Response:**
-```json
-{ "data": [{ "date": "2024-01-01", "page_views": 150, "sessions": 80, "form_submits": 25, "checkout_completes": 5, "revenue_cents": 4900, ... }] }
-```
-
-#### GET /api/v1/analytics/catalogs/:id/dropoff
-
-Page and field drop-off analysis — see where visitors abandon.
-
-#### GET /api/v1/analytics/catalogs/:id/responses
-
-Answer breakdowns per component — e.g. "56% answered Yes, 14% No, 30% Not Sure".
-
-**Query params:** `start`, `end`, `page_id`, `component_id`
-
-**Response:**
 ```json
 {
+  "ok": true,
+  "data": {
+    "total_visitors": 500,
+    "pages": [
+      { "page_id": "questions", "visitors": 500, "drop_off_rate": 0 },
+      { "page_id": "results", "visitors": 350, "drop_off_rate": 30 }
+    ],
+    "fields": [
+      { "field_id": "questions/email", "completions": 300, "completion_rate": 85.7 }
+    ]
+  }
+}
+```
+
+### Answer breakdowns
+
+See how visitors answered each question — great for understanding what resonates:
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/responses
+```
+
+**Query params:** `start`, `end`, `page_id`, `component_id` (all optional)
+
+```json
+{
+  "ok": true,
   "data": {
     "components": {
       "questions/q1": {
@@ -240,73 +240,122 @@ Answer breakdowns per component — e.g. "56% answered Yes, 14% No, 30% Not Sure
 }
 ```
 
-#### GET /api/v1/analytics/tracers/:tracerId
+### Raw events
 
-Full visitor journey for a single user — every event in chronological order with summary.
+Browse individual visitor events with filtering:
 
----
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/events
+```
 
-### Schema Introspection
+**Query params:** `start`, `end`, `cursor`, `limit` (default 100, max 500), `event_type`, `page_id`, `component_id`, `variant_slug`, `utm_source`, `utm_medium`, `utm_campaign`, `referrer`
 
-#### GET /api/v1/catalogs/:id/schema/ids
+Response includes a `cursor` for pagination (null when done).
 
-Flat map of all page/component IDs with labels and types — useful for building analytics queries.
+### Visitor journey
 
----
+Trace a single visitor's complete journey through your quiz, including their score:
 
-### Event Tracking (No Auth — FREE)
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/tracers/:tracerId
+```
 
-#### POST /events
-
-Track a single event.
-
-**Valid event_type values:** `page_view`, `field_change`, `field_complete`, `form_submit`, `action_click`, `exit_intent`, `session_start`, `session_resume`, `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `checkout_complete`, `payment_info_added`, `offer_declined`, `lead_captured`, `video_play`, `video_pause`, `video_progress`, `video_complete`, `video_chapter`, `video_seek`
-
-#### POST /events/batch
-
-Track up to 25 events at once. Body: `{ "events": [...] }`
-
-### Variant Analytics
-
-Every catalog gets an automatic `catalog:{catalog_id}` tag. Group quiz variants by adding the base catalog's tag to each variant's `schema.tags`.
-
-### Webhooks
-
-All event types are forwarded to the catalog's `webhook_url`. Payload includes `event_id` (ULID) and `schema_ref` with page/component context.
+Returns every event in chronological order with a summary: total events, first/last seen, pages viewed, and whether they submitted.
 
 ---
 
-### API Keys
+## A/B Split Tests
 
-#### POST /api/v1/api-keys
+Test different quiz versions to find what converts best. Split tests route visitors to different quiz variants based on weighted traffic distribution.
 
-Create an API key. Roles: `reader`, `editor`, `admin`, `custom`.
+### Create a split test
 
-#### GET /api/v1/api-keys
+```
+POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/split-tests
+```
 
-List all keys (secrets redacted).
+```json
+{
+  "slug": "marketing-quiz",
+  "name": "Marketing Quiz A/B Test",
+  "destinations": [
+    { "slug": "marketing-quiz-v1", "weight": 50, "label": "Control" },
+    { "slug": "marketing-quiz-v2", "weight": 50, "label": "Shorter version" }
+  ]
+}
+```
 
-#### DELETE /api/v1/api-keys/:keyId
+The `slug` is the URL visitors see. They get routed to one of the destination quizzes based on weights. Visitors are sticky — they always see the same variant on return visits.
 
-Revoke a key.
+### Other split test operations
 
-#### POST /api/v1/api-keys/:keyId/rotate
-
-Rotate: revoke old + create new with same config.
+- `GET /api/v1/split-tests` — List all split tests
+- `GET /api/v1/split-tests/:slug` — Get one split test
+- `PUT /api/v1/split-tests/:slug` — Update (change `name`, `destinations`, or `status`: `"active"` / `"paused"`)
+- `DELETE /api/v1/split-tests/:slug` — Delete a split test
 
 ---
 
-### Videos
+## Schema Introspection
 
-#### POST /api/v1/videos/upload -- Upload video for HLS transcoding
-#### GET /api/v1/videos/:videoId/status -- Check transcode status
-#### GET /api/v1/videos/:videoId/hls_url -- Get HLS playback URL
+Get a map of all pages and components in a quiz — useful for understanding the structure before querying analytics:
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/schema/ids
+```
+
+```json
+{
+  "pages": {
+    "questions": { "title": "Marketing Knowledge", "index": 0 },
+    "results": { "title": "Your Results", "index": 1 }
+  },
+  "components": {
+    "questions/q1": { "type": "multiple_choice", "label": "What does CTA stand for?", "quiz": true },
+    "questions/email": { "type": "email", "label": "Your Email", "required": true }
+  },
+  "routing_entry": "questions"
+}
+```
+
+---
+
+## API Keys
+
+Manage API keys for team members or integrations.
+
+- `POST /api/v1/api-keys` — Create a key (roles: `reader`, `editor`, `admin`, `custom`). Returns the secret once — store it securely.
+- `GET /api/v1/api-keys` — List all keys (secrets redacted)
+- `DELETE /api/v1/api-keys/:keyId` — Revoke a key
+- `POST /api/v1/api-keys/:keyId/rotate` — Rotate: revokes old key, creates new one with same config
+
+---
+
+## Videos
+
+Upload video content to use in your quizzes with automatic HLS transcoding:
+
+- `POST /api/v1/videos/upload` — Upload a video file
+- `GET /api/v1/videos/:videoId/status` — Check transcoding progress
+- `GET /api/v1/videos/:videoId/hls_url` — Get the playback URL
+
+---
+
+## Webhooks
+
+If your quiz has a `webhook_url` configured in its schema, all visitor events are forwarded there in real time. Each webhook payload includes an `event_id` (ULID) for deduplication and `schema_ref` with human-readable page/component context.
+
+---
+
+## Variant Analytics
+
+Every quiz gets an automatic `catalog:{catalog_id}` tag. To compare analytics across quiz variants, add the base quiz's `catalog:{base_id}` tag to each variant's `schema.tags`. API keys scoped with matching `tag_patterns` can then query analytics across all tagged variants.
 
 ---
 
 ## Quiz Schema Reference
 
-A quiz is a CatalogSchema with quiz-scored components. Minimal quiz example:
+A quiz is defined as a JSON schema with scored components. Here's a complete quiz example:
 
 ```json
 {
@@ -352,15 +401,23 @@ A quiz is a CatalogSchema with quiz-scored components. Minimal quiz example:
 
 ### Quiz Scoring
 
-Components with `quiz` config are scored automatically. The runtime tracks:
-- `total`: sum of earned points
-- `max`: sum of possible points
-- `percent`: (total / max) * 100
-- `correct_count`: number of correct answers
+Add a `quiz` property to any component to make it scored:
+
+```json
+{
+  "id": "q1",
+  "type": "multiple_choice",
+  "label": "What does CTA stand for?",
+  "options": ["Click To Act", "Call To Action", "Create The Ad"],
+  "quiz": { "correct_answer": "Call To Action", "points": 10, "explanation": "CTA = Call To Action" }
+}
+```
+
+The runtime automatically tracks: `total` (earned points), `max` (possible points), `percent` (score %), `correct_count`.
 
 ### Score-Based Routing
 
-Route visitors based on quiz scores:
+Route visitors to different results pages based on their quiz score:
 
 ```json
 {
@@ -383,6 +440,8 @@ Route visitors based on quiz scores:
 
 ### Popups
 
+Trigger popups based on visitor behavior:
+
 ```json
 {
   "popups": [
@@ -403,11 +462,29 @@ Route visitors based on quiz scores:
 
 `equals`, `not_equals`, `contains`, `not_contains`, `greater_than`, `less_than`, `greater_than_or_equal`, `less_than_or_equal`, `starts_with`, `ends_with`, `regex`, `in`, `not_in`, `is_empty`, `is_not_empty`, `between`
 
-### CLI Usage
+---
+
+## CLI
+
+Manage quizzes from the command line:
 
 ```bash
-npx catalogs catalog push quiz-schema.json --publish
-npx catalogs catalog list
-npx catalogs video upload ./intro.mp4
-npx catalogs video status VIDEO_ID
+npx catalogs catalog push quiz-schema.json --publish    # Create or update a quiz from a JSON file
+npx catalogs catalog list                                # List all your quizzes
+npx catalogs video upload ./intro.mp4                    # Upload a video
+npx catalogs video status VIDEO_ID                       # Check transcoding progress
 ```
+
+---
+
+## Event Tracking (Free)
+
+Visitor events are tracked automatically by the quiz frontend. You can also send custom events:
+
+```
+POST https://catalog-funnel-api.cloud.zoomgtm.com/events
+```
+
+**Valid event types:** `page_view`, `field_change`, `field_complete`, `form_submit`, `action_click`, `exit_intent`, `session_start`, `session_resume`, `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `checkout_complete`, `payment_info_added`, `offer_declined`, `lead_captured`, `video_play`, `video_pause`, `video_progress`, `video_complete`, `video_chapter`, `video_seek`
+
+Batch up to 25 events: `POST /events/batch` with `{ "events": [...] }`
