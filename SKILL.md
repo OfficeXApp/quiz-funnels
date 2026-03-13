@@ -185,35 +185,94 @@ Create a split test — route one slug to multiple quiz variants with weighted t
 
 ### Analytics
 
-All analytics endpoints require authentication with `analytics:read` permission.
+All analytics endpoints require authentication with `analytics:read` permission. Each call costs **1 credit**. Event ingestion is FREE.
+
+Events are stored in a dedicated analytics DynamoDB table with 180-day TTL. Daily and hourly rollup counters are atomically incremented for fast timeseries queries.
 
 #### GET /api/v1/analytics/catalogs/:id
 
-Funnel metrics including quiz completion rates, page drop-off, field completions, variant breakdown, and referrer sources.
+Aggregate funnel metrics: unique visitors, conversions, page drop-off, field completions, variant breakdown, referrer sources, checkout stats, revenue.
 
-**Query params:** `start`, `end` (ISO dates), `limit` (max events)
+**Query params:** `start`, `end` (ISO dates)
 
 #### GET /api/v1/analytics/catalogs/:id/events
 
-Raw events for a quiz funnel.
+Raw events with filters and cursor pagination.
+
+**Query params:** `start`, `end`, `cursor`, `limit` (default 100, max 500), `event_type`, `page_id`, `component_id`, `variant_slug`, `utm_source`, `utm_medium`, `utm_campaign`, `referrer`
+
+#### GET /api/v1/analytics/catalogs/:id/timeseries
+
+Rollup timeseries — fast pre-computed counters.
+
+**Query params (required):** `start`, `end`, `interval` (`day` or `hour`)
+
+**Response:**
+```json
+{ "data": [{ "date": "2024-01-01", "page_views": 150, "sessions": 80, "form_submits": 25, "checkout_completes": 5, "revenue_cents": 4900, ... }] }
+```
+
+#### GET /api/v1/analytics/catalogs/:id/dropoff
+
+Page and field drop-off analysis — see where visitors abandon.
+
+#### GET /api/v1/analytics/catalogs/:id/responses
+
+Answer breakdowns per component — e.g. "56% answered Yes, 14% No, 30% Not Sure".
+
+**Query params:** `start`, `end`, `page_id`, `component_id`
+
+**Response:**
+```json
+{
+  "data": {
+    "components": {
+      "questions/q1": {
+        "total_responses": 200,
+        "distribution": {
+          "Call To Action": { "count": 112, "percent": 56 },
+          "Click To Act": { "count": 28, "percent": 14 },
+          "Create The Ad": { "count": 60, "percent": 30 }
+        }
+      }
+    }
+  }
+}
+```
 
 #### GET /api/v1/analytics/tracers/:tracerId
 
-Full visitor journey for a tracer (visitor) ID.
+Full visitor journey for a single user — every event in chronological order with summary.
 
 ---
 
-### Event Tracking (No Auth)
+### Schema Introspection
+
+#### GET /api/v1/catalogs/:id/schema/ids
+
+Flat map of all page/component IDs with labels and types — useful for building analytics queries.
+
+---
+
+### Event Tracking (No Auth — FREE)
 
 #### POST /events
 
 Track a single event.
 
-**Valid event_type values:** `page_view`, `field_change`, `field_complete`, `form_submit`, `action_click`, `exit_intent`, `session_start`, `session_resume`, `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `video_play`, `video_pause`, `video_progress`, `video_complete`, `video_chapter`, `video_seek`
+**Valid event_type values:** `page_view`, `field_change`, `field_complete`, `form_submit`, `action_click`, `exit_intent`, `session_start`, `session_resume`, `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `checkout_complete`, `payment_info_added`, `offer_declined`, `lead_captured`, `video_play`, `video_pause`, `video_progress`, `video_complete`, `video_chapter`, `video_seek`
 
 #### POST /events/batch
 
 Track up to 25 events at once. Body: `{ "events": [...] }`
+
+### Variant Analytics
+
+Every catalog gets an automatic `catalog:{catalog_id}` tag. Group quiz variants by adding the base catalog's tag to each variant's `schema.tags`.
+
+### Webhooks
+
+All event types are forwarded to the catalog's `webhook_url`. Payload includes `event_id` (ULID) and `schema_ref` with page/component context.
 
 ---
 
