@@ -2,8 +2,8 @@
 name: quiz-funnels
 description: |
   Build and manage interactive quizzes, assessments, and lead-capture funnels with your AI agent. Create scored quizzes from JSON schemas, publish them instantly, run A/B tests, and track analytics — all through conversation.
-  Use when: (1) Creating or updating a quiz/assessment/funnel, (2) Checking analytics like visitors, scores, and drop-off rates, (3) Running A/B tests on quiz variants, (4) Managing API keys for team access, (5) Uploading videos for quizzes, (6) Viewing individual visitor journeys and quiz scores, (7) Reviewing answer distributions.
-  Triggers: quiz funnel, quiz builder, quiz scoring, quiz api, lead quiz, personality quiz, assessment quiz, funnel builder, conversion quiz, interactive quiz, split test, ab test, create quiz
+  Use when: (1) Creating or updating a quiz/assessment/funnel, (2) Checking analytics like visitors, scores, and drop-off rates, (3) Running A/B tests on quiz variants, (4) AI-routing visitors to the right quiz variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for quizzes, (7) Viewing individual visitor journeys and quiz scores, (8) Reviewing answer distributions, (9) Creating sandboxes to safely edit quizzes without affecting production, (10) Using the element inspector to get exact component references for AI agents.
+  Triggers: quiz funnel, quiz builder, quiz scoring, quiz api, lead quiz, personality quiz, assessment quiz, funnel builder, conversion quiz, interactive quiz, split test, ab test, create quiz, ai routing, variant routing, hint routing, sandbox, element inspector, devtools
 ---
 
 # Quiz Funnels
@@ -19,6 +19,9 @@ Build and manage interactive quizzes, assessments, and lead-capture funnels — 
 - **Check analytics** — see visitors, completion rates, score distributions, page drop-off, and revenue
 - **View answer breakdowns** — see how visitors answered each question (e.g. "56% chose Option A")
 - **Run A/B tests** — split traffic between quiz variants to optimize conversions
+- **AI variant routing** — auto-route visitors to the best quiz variant using natural language hints
+- **Sandbox editing** — clone a quiz to safely make changes without affecting the live version, then promote when ready
+- **Element inspector** — hold Shift+Alt to hover-inspect any element and copy its exact `pageId/componentId` reference for AI agents
 - **View visitor journeys** — trace exactly what each visitor did, including their quiz score
 - **Manage access** — create API keys for team members or integrations
 - **Upload videos** — add video content with automatic HLS transcoding
@@ -458,6 +461,30 @@ Trigger popups based on visitor behavior:
 
 **Trigger types:** `exit_intent`, `scroll_depth`, `inactive`, `timed`, `page_count`, `custom`, `video_progress`, `video_chapter`
 
+### Completion Screen
+
+Customize what visitors see after submitting the quiz:
+
+```json
+{
+  "settings": {
+    "completion": {
+      "heading": "Thanks for taking the quiz!",
+      "message": "Check your email for your results.",
+      "redirect_url": "https://example.com",
+      "redirect_delay": 3000,
+      "actions": [
+        { "type": "fill_again", "label": "Retake Quiz", "style": "secondary" },
+        { "type": "share", "label": "Share", "style": "ghost" },
+        { "type": "redirect", "label": "Visit Site", "url": "https://example.com", "style": "primary" }
+      ]
+    }
+  }
+}
+```
+
+**Action types:** `fill_again` (reset form), `share` (copy URL), `redirect` (navigate to URL). All fields are optional — omit `completion` entirely for a minimal checkmark screen.
+
 ### Condition Operators
 
 `equals`, `not_equals`, `contains`, `not_contains`, `greater_than`, `less_than`, `greater_than_or_equal`, `less_than_or_equal`, `starts_with`, `ends_with`, `regex`, `in`, `not_in`, `is_empty`, `is_not_empty`, `between`
@@ -474,6 +501,133 @@ npx catalogs catalog list                                # List all your quizzes
 npx catalogs video upload ./intro.mp4                    # Upload a video
 npx catalogs video status VIDEO_ID                       # Check transcoding progress
 ```
+
+---
+
+## AI Variant Routing
+
+Automatically route visitors to the best quiz variant using natural language hints. Instead of requiring exact variant slugs, pass a description and let the AI pick the right variant.
+
+### Route a visitor with hints
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?subdomain=yourname&slug=marketing-quiz&hints=female+entrepreneur+interested+in+social+media
+```
+
+**Response:**
+```json
+{
+  "ok": true,
+  "data": {
+    "variant_slug": "problem-aware-female",
+    "reason": "ai_matched"
+  }
+}
+```
+
+`reason` values: `ai_matched` (LLM picked best match), `single_variant` (only one variant exists), `no_variants` (quiz has no variants), `fallback` (LLM couldn't decide, returned first variant).
+
+### Frontend hint URLs
+
+The frontend handles AI routing automatically — just add `hints` to the URL:
+
+```
+# AI-routed (base quiz shows immediately, variant hot-swaps when AI responds):
+https://yourname.catalogs.cloud.zoomgtm.com/marketing-quiz?hints=female+entrepreneur&ref=253
+
+# Silent redirect (for affiliates — suppresses event tracking):
+https://yourname.catalogs.cloud.zoomgtm.com/marketing-quiz?hints=problem+aware+male&silent_redirect=true&ref=253
+
+# After AI routing resolves, browser URL updates to:
+https://yourname.catalogs.cloud.zoomgtm.com/marketing-quiz/problem-aware-male?ref=253
+```
+
+The base quiz renders instantly while AI routing resolves in the background. Visitors never see a loading screen — the variant swap is seamless.
+
+---
+
+## Sandbox Mode
+
+Edit quizzes safely without affecting production. A sandbox is a full clone of your quiz with its own URL and schema — make changes, preview live, and promote when ready.
+
+### Create a sandbox
+
+```
+POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/sandbox
+```
+
+```json
+{
+  "suffix": "redesign-v2"
+}
+```
+
+**Response (201):**
+```json
+{
+  "ok": true,
+  "data": {
+    "catalog_id": "01ABC...",
+    "slug": "marketing-quiz--redesign-v2",
+    "name": "Marketing Knowledge Quiz (Sandbox: redesign-v2)",
+    "sandbox_of": "01HXY...",
+    "parent_slug": "marketing-quiz",
+    "url": "https://yourname.catalogs.cloud.zoomgtm.com/marketing-quiz--redesign-v2"
+  }
+}
+```
+
+The sandbox is a regular quiz with its own URL. Edit it freely using `PUT /api/v1/catalogs/:sandbox_id` — your production quiz is untouched. The frontend shows an amber "SANDBOX" banner so you always know you're in sandbox mode.
+
+### List sandboxes for a quiz
+
+```
+GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/sandboxes
+```
+
+### Promote sandbox to production
+
+Copy the sandbox schema to the parent quiz:
+
+```
+POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:sandbox_id/promote
+```
+
+```json
+{
+  "delete_sandbox": true
+}
+```
+
+By default the sandbox is deleted after promotion. Set `"delete_sandbox": false` to keep it.
+
+### Discard a sandbox
+
+```
+DELETE https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:sandbox_id
+```
+
+### Listing quizzes with sandboxes
+
+By default, `GET /api/v1/catalogs` hides sandboxes. Add `?include_sandboxes=true` to include them. Each quiz response includes `sandbox_of` (null for regular quizzes, parent quiz ID for sandboxes).
+
+---
+
+## Element Inspector (DevEx)
+
+Built-in developer tool for AI agent workflows. Hold **Shift+Alt** and hover over any element in a live quiz to see its exact reference path (`pageId/componentId`) with a one-click copy button.
+
+This makes it trivial to tell an AI agent exactly which element to modify — no guessing, no digging through JSON.
+
+The reference format matches the schema introspection endpoint (`GET /api/v1/catalogs/:id/schema/ids`), so copied references map 1:1 to API paths.
+
+**How to use:**
+
+1. Open any quiz in the browser
+2. Hold **Shift+Alt** — a "Inspector active" indicator appears
+3. Hover over any element — it highlights with an indigo border and shows a tooltip with `pageId/componentId (type)`
+4. Click **Copy** to copy the reference to clipboard
+5. Paste the reference into your AI agent conversation (e.g. "change the heading at `questions/hero-title`")
 
 ---
 
