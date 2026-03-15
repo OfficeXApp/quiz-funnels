@@ -2,8 +2,8 @@
 name: quiz-funnels
 description: |
   Build and manage interactive quizzes, assessments, and lead-capture funnels with your AI agent. Create scored quizzes from JSON schemas, publish them instantly, run A/B tests with weighted variants, and track analytics — all through conversation.
-  Use when: (1) Creating or updating a quiz/assessment/funnel, (2) Checking analytics like visitors, scores, and drop-off rates, (3) Running A/B tests with weighted variants, (4) AI-routing visitors to the right quiz variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for quizzes, (7) Viewing individual visitor journeys and quiz scores, (8) Reviewing answer distributions, (9) Creating sandboxes to safely edit quizzes without affecting production, (10) Using the element inspector to get exact component references for AI agents.
-  Triggers: quiz funnel, quiz builder, quiz scoring, quiz api, lead quiz, personality quiz, assessment quiz, funnel builder, conversion quiz, interactive quiz, ab test, create quiz, ai routing, variant routing, hint routing, weighted variants, sandbox, element inspector, devtools
+  Use when: (1) Creating or updating a quiz/assessment/funnel, (2) Checking analytics like visitors, scores, and drop-off rates, (3) Running A/B tests with weighted variants, (4) AI-routing visitors to the right quiz variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for quizzes, (7) Viewing individual visitor journeys and quiz scores, (8) Reviewing answer distributions, (9) Creating sandboxes to safely edit quizzes without affecting production, (10) Using the element inspector to get exact component references for AI agents, (11) Adding scripting hooks for dynamic behavior like API calls, conditional routing, and cross-page state.
+  Triggers: quiz funnel, quiz builder, quiz scoring, quiz api, lead quiz, personality quiz, assessment quiz, funnel builder, conversion quiz, interactive quiz, ab test, create quiz, ai routing, variant routing, hint routing, weighted variants, sandbox, element inspector, devtools, hooks, scripting, on_change, on_enter, on_submit
 ---
 
 # Quiz Funnels
@@ -25,6 +25,7 @@ Build and manage interactive quizzes, assessments, and lead-capture funnels — 
 - **View visitor journeys** — trace exactly what each visitor did, including their quiz score
 - **Manage access** — create API keys for team members or integrations
 - **Upload videos** — add video content with automatic HLS transcoding
+- **Scripting hooks** — add imperative logic (API calls, dynamic routing, cross-page state) at page and component lifecycle points
 
 ## Getting Started
 
@@ -406,6 +407,38 @@ Add a `quiz` property to any component to make it scored:
 
 The runtime automatically tracks: `total` (earned points), `max` (possible points), `percent` (score %), `correct_count`.
 
+### Inline Quiz Feedback
+
+Show correct/incorrect feedback immediately when a visitor selects an answer (like Fillout.com) by adding `reveal_on_select: true` to the quiz config:
+
+```json
+{
+  "id": "q1",
+  "type": "multiple_choice",
+  "label": "What's the catch?",
+  "options": [
+    { "value": "a", "label": "No Babysitting Policy" },
+    { "value": "b", "label": "Must show up consistently" },
+    { "value": "c", "label": "All of the Above" }
+  ],
+  "quiz": {
+    "correct_answer": "c",
+    "points": 10,
+    "explanation": "All three are true — this program rewards effort.",
+    "reveal_on_select": true
+  }
+}
+```
+
+When `reveal_on_select` is `true`:
+- The correct answer gets a **green border** immediately after selection
+- A wrong selection gets a **red border**
+- A feedback banner shows "Correct!" or "You got the wrong answer."
+- The explanation text is displayed (if provided)
+- Options become **locked** — the visitor cannot change their answer
+
+Works with both `multiple_choice` (single-select) and `checkboxes` (multi-select) components. Omit `reveal_on_select` or set to `false` for the default behavior (no inline feedback — use `reveal_answers` on a later page instead).
+
 ### Score-Based Routing
 
 Route visitors to different results pages based on their quiz score:
@@ -428,6 +461,23 @@ Route visitors to different results pages based on their quiz score:
 **Display (11):** `heading`, `paragraph`, `banner`, `image`, `video`, `pdf_viewer`, `social_links`, `html`, `divider`, `faq`, `testimonial`, `pricing_card`
 
 **Layout (3):** `section_collapse`, `table`, `subform`
+
+### Component Width (Multi-Column Layout)
+
+Any component can have a `width` property to create side-by-side layouts. Adjacent sub-full-width components are automatically grouped into flex rows.
+
+**Values:** `"full"` (default), `"half"`, `"third"`, `"two_thirds"`
+
+```json
+{
+  "components": [
+    { "id": "phone_img", "type": "image", "width": "half", "props": { "src": "https://example.com/phone.png" } },
+    { "id": "phone_text", "type": "paragraph", "width": "half", "props": { "text": "**Your Phone**\n\nThis gig is 100% mobile-friendly." } }
+  ]
+}
+```
+
+Components stack vertically on mobile and go side-by-side on desktop. Mix widths freely — e.g. `"third"` + `"two_thirds"` for a sidebar layout.
 
 ### Popups
 
@@ -472,6 +522,26 @@ Customize what visitors see after submitting the quiz:
 ```
 
 **Action types:** `fill_again` (reset form), `share` (copy URL), `redirect` (navigate to URL). All fields are optional — omit `completion` entirely for a minimal checkmark screen.
+
+### Scripting / Hooks
+
+Imperative escape hatches within the declarative config. Attach hooks to pages (`hooks.on_enter`, `hooks.on_before_next`, `hooks.on_exit`, `hooks.on_submit`) or components (`hooks.on_change`). Global hooks on the schema: `global_hooks.on_page_enter`, `global_hooks.on_page_exit`, `global_hooks.on_field_change`.
+
+Each hook receives a `ScriptContext` with:
+- Read-only: `formState`, `vars`, `hints`, `url_params`, `page_id`, `quiz_scores`, `field_id`/`field_value`/`prev_value` (on_change only)
+- Mutation methods: `setField(id, value)`, `setVar(key, value)`, `setComponentProp(id, prop, value)`, `setNextPage(pageId)`
+- `fetch` for async API calls
+
+`on_before_next` and `on_submit` can return `{ prevent: true }` to block navigation or `{ next_page: "page_id" }` to override routing. Scripts have a 5-second timeout and never crash the renderer.
+
+```json
+{
+  "hooks": {
+    "on_enter": "ctx.setVar('entered_at', Date.now())",
+    "on_before_next": "if (!ctx.formState.email) return { prevent: true }"
+  }
+}
+```
 
 ### Condition Operators
 
