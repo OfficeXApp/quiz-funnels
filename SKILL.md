@@ -365,6 +365,19 @@ A catalog schema defines your entire funnel as JSON. Here's a minimal lead captu
 }
 ```
 
+### Theme
+
+Set theme options under `settings.theme`:
+
+- `primary_color` (required) — hex color for buttons, accents, active states
+- `font` — Google Font family name (e.g. `"Inter"`)
+- `font_size` — base font size for body text and inputs in rem. Default: `1` (16px). Use `1.125` for 18px, `1.25` for 20px
+- `mode` — `"light"` (default) or `"dark"`
+- `border_radius` — global border radius in px
+- `background_image` — URL for cover page background
+- `background_color` — hex color for page background
+- `background_overlay` — `"dark"`, `"light"`, `"none"`, or a number 0–1
+
 ### Component Types (57 total)
 
 **Input (27):** `short_text`, `long_text`, `rich_text`, `email`, `phone`, `url`, `password`, `number`, `currency`, `date`, `datetime`, `time`, `date_range`, `dropdown`, `multiselect`, `multiple_choice`, `checkboxes`, `picture_choice`, `star_rating`, `slider`, `file_upload`, `signature`, `address`, `location`, `switch`, `checkbox`, `choice_matrix`, `ranking`, `opinion_scale`
