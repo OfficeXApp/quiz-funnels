@@ -453,6 +453,25 @@ Set theme options under `settings.theme`:
 
 **Page features:** `payment`, `captcha`
 
+### Prefill Modes & Readonly Copy
+
+Input components support a `prefill_mode` property that controls how prefilled values are displayed:
+
+- `"editable"` (default) — prefilled value is shown in a normal editable input
+- `"readonly"` — value is shown in a styled read-only input with a **copy-to-clipboard button**. The user can click the clipboard icon to copy the value. Useful for displaying generated codes, API keys, referral links, or any value the user needs to copy but shouldn't edit.
+- `"hidden"` — the component is completely hidden when prefilled (useful for passing data silently)
+
+```json
+{
+  "id": "referral_code",
+  "type": "short_text",
+  "props": { "label": "Your Referral Code" },
+  "prefill_mode": "readonly"
+}
+```
+
+To prefill values, pass them as URL parameters matching the component ID: `?referral_code=ABC123`. The readonly input renders with a clipboard icon — clicking it copies the value and shows a brief checkmark confirmation.
+
 ### Component Width (Multi-Column Layout)
 
 Any component can have a `width` property to create side-by-side layouts. Adjacent sub-full-width components are automatically grouped into flex rows.
@@ -645,9 +664,11 @@ Customize what visitors see after submitting:
 
 ### Scripting / Hooks
 
-Imperative escape hatches within the declarative config. Attach hooks to pages (`hooks.on_enter`, `hooks.on_before_next`, `hooks.on_exit`, `hooks.on_submit`) or components (`hooks.on_change`). Global hooks on the schema: `global_hooks.on_page_enter`, `global_hooks.on_page_exit`, `global_hooks.on_field_change`.
+Imperative escape hatches within the declarative config. **Hooks must be authored as TypeScript functions** and pushed via the CLI (`npx catalogs catalog push catalog.ts`). The CLI serializes real functions into the correct format automatically — do not write hook strings in JSON by hand.
 
-Each hook receives a `ScriptContext` with:
+Attach hooks to pages (`hooks.on_enter`, `hooks.on_before_next`, `hooks.on_exit`, `hooks.on_submit`) or components (`hooks.on_change`). Global hooks on the schema: `global_hooks.on_page_enter`, `global_hooks.on_page_exit`, `global_hooks.on_field_change`.
+
+Each hook receives a `ScriptContext` (`ctx`) with:
 - Read-only: `formState`, `vars`, `hints`, `url_params`, `page_id`, `quiz_scores`, `field_id`/`field_value`/`prev_value` (on_change only)
 - Mutation methods: `setField(id, value)`, `setVar(key, value)`, `setComponentProp(id, prop, value)`, `setNextPage(pageId)`
 - `fetch` for async API calls
@@ -660,14 +681,39 @@ Each hook receives a `ScriptContext` with:
 
 **Catalog-level hooks** (`global_hooks`): `on_page_enter`, `on_page_exit`, `on_field_change`, `on_init` (runs once on load), `on_tick` (runs on interval).
 
-```json
-{
-  "hooks": {
-    "on_enter": "ctx.setVar('entered_at', Date.now())",
-    "on_before_next": "if (!ctx.formState.email) return { prevent: true }"
-  }
-}
+```typescript
+// In your catalog.ts file — hooks are real functions, type-checked and auto-serialized by the CLI
+const catalog = {
+  pages: {
+    landing: {
+      title: "Get Started",
+      hooks: {
+        on_enter: (ctx) => {
+          ctx.setVar("entered_at", Date.now());
+        },
+        on_before_next: (ctx) => {
+          if (!ctx.formState.email) return { prevent: true };
+        },
+      },
+      components: [/* ... */],
+    },
+    results: {
+      title: "Your Results",
+      hooks: {
+        on_enter: (ctx) => {
+          const s = ctx.quiz_scores;
+          const correct = s?.total || 0;
+          const total = s?.max || 0;
+          ctx.setComponentProp("score-display", "text", `You scored ${correct} / ${total}`);
+        },
+      },
+      components: [/* ... */],
+    },
+  },
+} satisfies CatalogSchema;
 ```
+
+**Important:** The API validates hook syntax at write time. Malformed hooks are rejected with a clear error — they will never silently fail for visitors.
 
 ---
 
@@ -833,21 +879,64 @@ By default, `GET /api/v1/catalogs` hides sandboxes. Add `?include_sandboxes=true
 
 ## Element Inspector (DevEx)
 
-Built-in developer tool for AI agent workflows. Hold **Shift+Alt** and hover over any element in a live catalog to see its exact reference path — then click to copy.
-
-This makes it trivial to tell an AI agent exactly which element to modify — no guessing, no digging through JSON.
-
-The reference format matches the schema introspection endpoint (`GET /api/v1/catalogs/:id/schema/ids`), so copied references map 1:1 to API paths.
+Built-in developer tool for AI agent workflows. Hold **Shift+Alt** and hover over any element in a live catalog to see rich context — then click to copy a structured JSON block that an AI agent can use to pinpoint exactly what the user is referring to.
 
 **How to use:**
 
 1. Open any catalog in the browser
-2. Hold **Shift+Alt** — a "Inspector active" indicator appears
-3. Hover over any element — it highlights with an indigo border and shows a tooltip with the reference path
-4. **Click anywhere** to copy the reference to clipboard (tooltip flashes green "Copied!")
-5. Paste the reference into your AI agent conversation (e.g. "change the heading at `landing/hero-title`")
+2. Hold **Shift+Alt** — an "Inspector active" indicator appears (shows the catalog slug and variant if applicable)
+3. Hover over any element — it highlights with an indigo border and shows a multi-line tooltip with:
+   - **Reference path** (e.g. `landing/hero-title`) and component type
+   - **Label text** extracted from the component's DOM
+   - **Catalog context** — slug, catalog ID prefix, variant slug, sandbox status
+4. **Click anywhere** to copy a structured JSON block to clipboard
+5. Paste the JSON into your AI agent conversation — it contains everything needed to locate and modify the element
 
-**Sub-element targeting:** The inspector drills into child elements within components. Hovering a label, button, input, image, heading, or option card shows a more specific reference with a `#` suffix — e.g. `landing/email_field#label`, `landing/cta#button`, `quiz_page/q1#option:b`. Hovering the component wrapper itself gives the base `pageId/componentId` reference.
+**Copied JSON format:**
+
+```json
+{
+  "ref": "landing/hero-title",
+  "page_id": "landing",
+  "component_id": "hero-title",
+  "component_type": "heading",
+  "label": "Get Started Today",
+  "schema_path": "schema.pages.landing.components[id=\"hero-title\"]",
+  "catalog_id": "01HXY...",
+  "catalog_slug": "spring-sale",
+  "variant_slug": "new-headline",
+  "api_endpoint": "PUT https://api.catalogkit.cc/api/v1/catalogs/01HXY..."
+}
+```
+
+**Fields in the copied JSON:**
+
+| Field | Description |
+|---|---|
+| `ref` | Human-readable reference: `pageId/componentId` or `pageId/componentId#subElement` |
+| `page_id` | The page containing this component |
+| `component_id` | The component's unique ID within its page |
+| `component_type` | Component type (e.g. `heading`, `email`, `multiple_choice`, `image`) |
+| `label` | The visible label/heading text (if present) |
+| `sub_element` | Sub-element within the component (e.g. `label`, `button`, `input:text`, `radio`, `option:b`) |
+| `schema_path` | Exact path in the catalog schema JSON |
+| `catalog_id` | Full catalog ID for API calls |
+| `catalog_slug` | URL slug of the catalog |
+| `variant_slug` | Active variant slug (if viewing a variant) |
+| `variant_id` | Active variant ID (if viewing a variant) |
+| `sandbox_of` | Parent catalog ID (if this is a sandbox) |
+| `api_endpoint` | Ready-to-use PUT endpoint for updating the catalog |
+
+**Sub-element targeting:** The inspector drills into child elements within components. Hovering a label, button, input, image, heading, or option card shows a more specific reference with a `#` suffix — e.g. `landing/email_field#label`, `landing/cta#button`, `quiz_page/q1#option:b`.
+
+**Detail panel:** After clicking to copy, a dismissible panel appears in the bottom-right showing the full JSON that was copied. This persists after releasing Shift+Alt so you can review what was captured.
+
+**AI agent workflow example:**
+
+1. User holds Shift+Alt, hovers over a heading, clicks to copy
+2. User pastes into Claude: "change this element: `{...copied JSON...}` to say 'Welcome Back'"
+3. AI agent reads the `catalog_id`, `page_id`, `component_id`, and `api_endpoint` from the JSON
+4. AI agent fetches the catalog via `GET /api/v1/catalogs/{catalog_id}`, finds the component at `schema.pages.{page_id}.components` where `id == component_id`, updates the text, and PUTs back
 
 ---
 
