@@ -1,35 +1,34 @@
 ---
-name: quiz-funnels
+name: catalog-kit
 description: |
-  Build and manage interactive quizzes, assessments, and lead-capture funnels with your AI agent. Create scored quizzes from JSON schemas, publish them instantly, run A/B tests with weighted variants, and track analytics — all through conversation.
-  Use when: (1) Creating or updating a quiz/assessment/funnel, (2) Checking analytics like visitors, scores, and drop-off rates, (3) Running A/B tests with weighted variants, (4) AI-routing visitors to the right quiz variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for quizzes, (7) Viewing individual visitor journeys and quiz scores, (8) Reviewing answer distributions, (9) Creating sandboxes to safely edit quizzes without affecting production, (10) Using the element inspector to get exact component references for AI agents, (11) Adding scripting hooks for dynamic behavior like API calls, conditional routing, and cross-page state.
-  Triggers: quiz funnel, quiz builder, quiz scoring, quiz api, lead quiz, personality quiz, assessment quiz, funnel builder, conversion quiz, interactive quiz, ab test, create quiz, ai routing, variant routing, hint routing, weighted variants, sandbox, element inspector, devtools, hooks, scripting, on_change, on_enter, on_submit
+  Build and manage marketing catalogs, landing pages, and multi-step funnels with your AI agent. Create catalogs from JSON schemas, publish them instantly, run A/B tests with weighted variants, and track visitor analytics — all through conversation.
+  Use when: (1) Creating or updating a catalog/funnel/landing page, (2) Checking analytics like visitors, conversions, and drop-off rates, (3) Running A/B tests on different catalog versions, (4) AI-routing visitors to the right catalog variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for catalogs, (7) Viewing individual visitor journeys, (8) Reviewing response distributions for form fields, (9) Creating sandboxes to safely edit catalogs without affecting production, (10) Using the element inspector to get exact component references for AI agents, (11) Adding scripting hooks for dynamic behavior like API calls, conditional routing, and cross-page state.
+  Triggers: catalog funnel, catalog kit, funnel builder, landing page, lead capture, create catalog, catalog analytics, conversion funnel, form builder, ab test, catalog api, ai routing, variant routing, hint routing, sandbox, element inspector, devtools, hooks, scripting, on_change, on_enter, on_submit
 ---
 
-# Quiz Funnels
+# Catalog Kit
 
-Build and manage interactive quizzes, assessments, and lead-capture funnels — directly through your AI agent. Create scored quizzes with 56+ component types, automatic grading, conditional routing based on scores, and full analytics on how visitors answer.
+Build and manage marketing catalogs, landing pages, and multi-step funnels — directly through your AI agent. Create catalogs with 57+ component types, publish them instantly, run A/B tests with weighted variants, and monitor conversion analytics in real time.
 
-> **Install on OfficeX:** [officex.app/store/en/app/quiz-funnels](https://officex.app/store/en/app/quiz-funnels)
+> **Install on OfficeX:** [officex.app/store/en/app/catalog-kit](https://officex.app/store/en/app/catalog-kit)
 
 ## What You Can Do
 
-- **Create quizzes** — build scored assessments, personality quizzes, lead qualification funnels from a JSON schema
-- **Publish instantly** — quizzes go live at your subdomain (SUBDOMAIN.catalogkit.cc) or custom domain
-- **Check analytics** — see visitors, completion rates, score distributions, page drop-off, and revenue
-- **View answer breakdowns** — see how visitors answered each question (e.g. "56% chose Option A")
-- **Run A/B tests** — use weighted variants to split traffic to optimize conversions
-- **AI variant routing** — auto-route visitors to the best quiz variant using natural language hints
-- **Sandbox editing** — clone a quiz to safely make changes without affecting the live version, then promote when ready
+- **Create catalogs** — build lead capture forms, product catalogs, multi-step funnels from a JSON schema
+- **Publish instantly** — catalogs go live at your subdomain (SUBDOMAIN.catalogkit.cc) or custom domain
+- **Check analytics** — see visitors, conversions, page drop-off, field completions, referrer sources, and revenue
+- **Run A/B tests** — use weighted variants to split traffic to find what converts best
+- **AI variant routing** — auto-route visitors to the best catalog variant using natural language hints
+- **Sandbox editing** — clone a catalog to safely make changes without affecting the live version, then promote when ready
 - **Element inspector** — hold Shift+Alt to hover-inspect any element and copy its exact `pageId/componentId` reference for AI agents
-- **View visitor journeys** — trace exactly what each visitor did, including their quiz score
+- **View visitor journeys** — trace exactly what each visitor did step by step
 - **Manage access** — create API keys for team members or integrations
 - **Upload videos** — add video content with automatic HLS transcoding
 - **Scripting hooks** — add imperative logic (API calls, dynamic routing, cross-page state) at page and component lifecycle points
 
 ## Getting Started
 
-After installing Quiz Funnels on OfficeX, you receive credentials automatically. You can also sign up at the dashboard and create API keys from Settings.
+After installing Catalog Kit on OfficeX, you receive credentials automatically. You can also sign up at the dashboard and create API keys from Settings.
 
 ```bash
 # Your API key (created from Settings page or received on install)
@@ -58,11 +57,9 @@ curl -H "Authorization: Bearer $TOKEN" \
 
 ---
 
-## Managing Quizzes
+## Managing Catalogs
 
-Quizzes are catalogs with quiz-scored components. All the same CRUD operations apply.
-
-### List your quizzes
+### List your catalogs
 
 ```
 GET https://api.catalogkit.cc/api/v1/catalogs
@@ -75,8 +72,8 @@ GET https://api.catalogkit.cc/api/v1/catalogs
   "data": [
     {
       "catalog_id": "01HXY...",
-      "slug": "marketing-quiz",
-      "name": "Marketing Knowledge Quiz",
+      "slug": "my-funnel",
+      "name": "My Funnel",
       "status": "published",
       "visibility": "public",
       "created_at": "2024-01-01T00:00:00Z",
@@ -86,7 +83,7 @@ GET https://api.catalogkit.cc/api/v1/catalogs
 }
 ```
 
-### Create a quiz
+### Create a catalog
 
 ```
 POST https://api.catalogkit.cc/api/v1/catalogs
@@ -94,15 +91,15 @@ POST https://api.catalogkit.cc/api/v1/catalogs
 
 ```json
 {
-  "slug": "marketing-quiz",
-  "name": "Marketing Knowledge Quiz",
+  "slug": "spring-sale",
+  "name": "Spring Sale Landing Page",
   "schema": { ... },
   "status": "published",
   "visibility": "public"
 }
 ```
 
-- `slug` — URL-friendly name (lowercase, hyphens). Your quiz will be live at your configured domain
+- `slug` — URL-friendly name (lowercase, hyphens). Your catalog will be live at your configured domain
 - `status` — `"published"` (live) or `"draft"` (hidden). Default: `"published"`
 - `visibility` — `"public"` (listed) or `"unlisted"` (link-only). Default: `"unlisted"`
 
@@ -112,24 +109,24 @@ POST https://api.catalogkit.cc/api/v1/catalogs
   "ok": true,
   "data": {
     "catalog_id": "01HXY...",
-    "slug": "marketing-quiz",
-    "name": "Marketing Knowledge Quiz",
+    "slug": "spring-sale",
+    "name": "Spring Sale Landing Page",
     "status": "published",
     "visibility": "public",
-    "url": "https://SUBDOMAIN.catalogkit.cc/marketing-quiz"
+    "url": "https://SUBDOMAIN.catalogkit.cc/spring-sale"
   }
 }
 ```
 
-### View a quiz
+### View a catalog
 
 ```
 GET https://api.catalogkit.cc/api/v1/catalogs/:id
 ```
 
-Returns the full quiz including its schema.
+Returns the full catalog including its schema.
 
-### Update a quiz
+### Update a catalog
 
 ```
 PUT https://api.catalogkit.cc/api/v1/catalogs/:id
@@ -139,10 +136,11 @@ All fields are optional — only send what you want to change:
 
 ```json
 {
-  "name": "Updated Quiz Name",
+  "name": "Updated Name",
   "schema": { ... },
   "status": "draft",
-  "slug": "new-quiz-slug",
+  "visibility": "public",
+  "slug": "new-slug",
   "old_slug_action": "redirect"
 }
 ```
@@ -151,7 +149,7 @@ When changing the slug, `old_slug_action` controls what happens to the old URL:
 - `"redirect"` (default) — old URL redirects to the new one
 - `"release"` — old URL becomes available for reuse
 
-### Delete a quiz
+### Delete a catalog
 
 ```
 DELETE https://api.catalogkit.cc/api/v1/catalogs/:id
@@ -192,7 +190,7 @@ GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id/timeseries
 
 ### Drop-off analysis
 
-See exactly where visitors abandon your quiz:
+See exactly where visitors abandon your funnel:
 
 ```
 GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id/dropoff
@@ -206,8 +204,8 @@ GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id/dropoff
   "data": {
     "total_visitors": 500,
     "pages": [
-      { "page_id": "questions", "visitors": 500, "drop_off_rate": 0 },
-      { "page_id": "results", "visitors": 350, "drop_off_rate": 30 }
+      { "page_id": "intro", "visitors": 500, "drop_off_rate": 0 },
+      { "page_id": "questions", "visitors": 350, "drop_off_rate": 30 }
     ],
     "fields": [
       { "field_id": "questions/email", "completions": 300, "completion_rate": 85.7 }
@@ -216,9 +214,9 @@ GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id/dropoff
 }
 ```
 
-### Answer breakdowns
+### Response distributions
 
-See how visitors answered each question — great for understanding what resonates:
+See how visitors answered each question or form field:
 
 ```
 GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id/responses
@@ -234,9 +232,9 @@ GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id/responses
       "questions/q1": {
         "total_responses": 200,
         "distribution": {
-          "Call To Action": { "count": 112, "percent": 56 },
-          "Click To Act": { "count": 28, "percent": 14 },
-          "Create The Ad": { "count": 60, "percent": 30 }
+          "Option A": { "count": 112, "percent": 56 },
+          "Option B": { "count": 28, "percent": 14 },
+          "Option C": { "count": 60, "percent": 30 }
         }
       }
     }
@@ -258,7 +256,7 @@ Response includes a `cursor` for pagination (null when done).
 
 ### Visitor journey
 
-Trace a single visitor's complete journey through your quiz, including their score:
+Trace a single visitor's complete journey through your catalog:
 
 ```
 GET https://api.catalogkit.cc/api/v1/analytics/tracers/:tracerId
@@ -270,7 +268,7 @@ Returns every event in chronological order with a summary: total events, first/l
 
 ## A/B Testing with Weighted Variants
 
-Test different versions of your quiz by adding weighted variants to your schema. Set `variant_routing: "random"` for weighted random routing, `"hint"` for AI-based routing, or `"hybrid"` for both.
+Test different versions of your catalog by adding weighted variants to your schema. Set `variant_routing: "random"` for weighted random routing, `"hint"` for AI-based routing, or `"hybrid"` for both.
 
 ```json
 {
@@ -284,13 +282,13 @@ Test different versions of your quiz by adding weighted variants to your schema.
 }
 ```
 
-Variants with `target_slug` route visitors to a different quiz entirely. Variants without `target_slug` apply personalization hints within the same quiz.
+Variants with `target_slug` route visitors to a different catalog entirely. Variants without `target_slug` apply personalization hints within the same catalog.
 
 ---
 
 ## Schema Introspection
 
-Get a map of all pages and components in a quiz — useful for understanding the structure before querying analytics:
+Get a map of all pages and components in a catalog — useful for understanding the structure before querying analytics:
 
 ```
 GET https://api.catalogkit.cc/api/v1/catalogs/:id/schema/ids
@@ -299,14 +297,14 @@ GET https://api.catalogkit.cc/api/v1/catalogs/:id/schema/ids
 ```json
 {
   "pages": {
-    "questions": { "title": "Marketing Knowledge", "index": 0 },
-    "results": { "title": "Your Results", "index": 1 }
+    "landing": { "title": "Get Started", "index": 0 },
+    "details": { "title": "Your Details", "index": 1 }
   },
   "components": {
-    "questions/q1": { "type": "multiple_choice", "label": "What does CTA stand for?", "quiz": true },
-    "questions/email": { "type": "email", "label": "Your Email", "required": true }
+    "landing/email": { "type": "email", "label": "Your Email", "required": true },
+    "landing/company": { "type": "short_text", "label": "Company Name" }
   },
-  "routing_entry": "questions"
+  "routing_entry": "landing"
 }
 ```
 
@@ -325,7 +323,7 @@ Manage API keys for team members or integrations.
 
 ## Videos
 
-Upload video content to use in your quizzes with automatic HLS transcoding:
+Upload video content to use in your catalogs with automatic HLS transcoding:
 
 - `POST /api/v1/videos/upload` — Upload a video file
 - `GET /api/v1/videos/:videoId/status` — Check transcoding progress
@@ -335,65 +333,95 @@ Upload video content to use in your quizzes with automatic HLS transcoding:
 
 ## Webhooks
 
-If your quiz has a `webhook_url` configured in its schema, all visitor events are forwarded there in real time. Each webhook payload includes an `event_id` (ULID) for deduplication and `schema_ref` with human-readable page/component context.
+If your catalog has a `webhook_url` configured in its schema, all visitor events are forwarded there in real time. Each webhook payload includes an `event_id` (ULID) for deduplication and `schema_ref` with human-readable page/component context.
 
 ---
 
 ## Variant Analytics
 
-Every quiz gets an automatic `catalog:{catalog_id}` tag. To compare analytics across quiz variants, add the base quiz's `catalog:{base_id}` tag to each variant's `schema.tags`. API keys scoped with matching `tag_patterns` can then query analytics across all tagged variants.
+Every catalog gets an automatic `catalog:{catalog_id}` tag. To compare analytics across catalog variants (e.g. for A/B tests), add the base catalog's `catalog:{base_id}` tag to each variant's `schema.tags`. API keys scoped with matching `tag_patterns` can then query analytics across all tagged variants.
 
 ---
 
-## Quiz Schema Reference
+## Catalog Schema Reference
 
-A quiz is defined as a JSON schema with scored components. Here's a complete quiz example:
+A catalog schema defines your entire funnel as JSON. Here's a minimal lead capture example:
 
 ```json
 {
-  "slug": "marketing-quiz",
+  "slug": "lead-capture",
   "pages": [
     {
-      "id": "questions",
-      "title": "Marketing Knowledge",
+      "id": "landing",
+      "title": "Get Started",
       "components": [
-        {
-          "id": "q1",
-          "type": "multiple_choice",
-          "label": "What does CTA stand for?",
-          "options": ["Click To Act", "Call To Action", "Create The Ad"],
-          "quiz": { "correct_answer": "Call To Action", "points": 10, "explanation": "CTA = Call To Action" }
-        },
-        {
-          "id": "q2",
-          "type": "multiple_choice",
-          "label": "What is a conversion rate?",
-          "options": ["Bounce rate", "% of visitors who take desired action", "Click rate"],
-          "quiz": { "correct_answer": "% of visitors who take desired action", "points": 10 }
-        }
+        { "id": "name", "type": "short_text", "label": "Your Name", "required": true },
+        { "id": "email", "type": "email", "label": "Email", "required": true }
       ],
-      "submit_label": "See Results"
-    },
-    {
-      "id": "results",
-      "title": "Your Results",
-      "components": [
-        { "id": "score-display", "type": "heading", "text": "Your Score" }
-      ]
+      "submit_label": "Submit"
     }
   ],
+  "routing": { "entry": "landing", "edges": [] }
+}
+```
+
+### Component Types (57 total)
+
+**Input (27):** `short_text`, `long_text`, `rich_text`, `email`, `phone`, `url`, `password`, `number`, `currency`, `date`, `datetime`, `time`, `date_range`, `dropdown`, `multiselect`, `multiple_choice`, `checkboxes`, `picture_choice`, `star_rating`, `slider`, `file_upload`, `signature`, `address`, `location`, `switch`, `checkbox`, `choice_matrix`, `ranking`, `opinion_scale`
+
+**Display (12):** `heading`, `paragraph`, `banner`, `image`, `video`, `pdf_viewer`, `social_links`, `html`, `divider`, `faq`, `testimonial`, `pricing_card`, `timeline`
+
+**Layout (3):** `section_collapse`, `table`, `subform`
+
+**Page features:** `payment`, `captcha`
+
+### Component Width (Multi-Column Layout)
+
+Any component can have a `width` property to create side-by-side layouts. Adjacent sub-full-width components are automatically grouped into flex rows.
+
+**Values:** `"full"` (default), `"half"`, `"third"`, `"two_thirds"`
+
+```json
+{
+  "components": [
+    { "id": "phone_img", "type": "image", "width": "half", "props": { "src": "https://example.com/phone.png" } },
+    { "id": "phone_text", "type": "paragraph", "width": "half", "props": { "text": "**Your Phone**\n\nThis gig is 100% mobile-friendly." } },
+    { "id": "leads_img", "type": "image", "width": "half", "props": { "src": "https://example.com/leads.png" } },
+    { "id": "leads_text", "type": "paragraph", "width": "half", "props": { "text": "**Leads Vending Machine**\n\nGet your daily prospects." } }
+  ]
+}
+```
+
+Components stack vertically on mobile and go side-by-side on desktop. Mix widths freely — e.g. `"third"` + `"two_thirds"` for a sidebar layout.
+
+### Multi-Page Routing
+
+Route visitors through different pages based on their answers:
+
+```json
+{
   "routing": {
-    "entry": "questions",
+    "entry": "landing",
     "edges": [
-      { "from": "questions", "to": "results", "is_default": true }
+      {
+        "from": "landing",
+        "to": "enterprise",
+        "conditions": {
+          "match": "all",
+          "rules": [{ "field": "company_size", "operator": "greater_than", "value": 100 }]
+        }
+      },
+      { "from": "landing", "to": "standard", "is_default": true }
     ]
   }
 }
 ```
 
+**Condition operators:** `equals`, `not_equals`, `contains`, `not_contains`, `greater_than`, `less_than`, `greater_than_or_equal`, `less_than_or_equal`, `starts_with`, `ends_with`, `regex`, `in`, `not_in`, `is_empty`, `is_not_empty`, `between`
+
 ### Quiz Scoring
 
-Add a `quiz` property to any component to make it scored:
+Add quiz scoring to any multiple choice or input component:
 
 ```json
 {
@@ -405,11 +433,11 @@ Add a `quiz` property to any component to make it scored:
 }
 ```
 
-The runtime automatically tracks: `total` (earned points), `max` (possible points), `percent` (score %), `correct_count`.
+Score-based routing: `{ "score": "percent", "operator": "greater_than", "value": 80 }`
 
-### Inline Quiz Feedback
+### Inline Quiz Feedback (Reveal on Continue)
 
-Show correct/incorrect feedback immediately when a visitor selects an answer (like Fillout.com) by adding `reveal_on_select: true` to the quiz config:
+Show correct/incorrect feedback when the visitor clicks Continue by adding `reveal_on_select: true` to the quiz config:
 
 ```json
 {
@@ -430,54 +458,65 @@ Show correct/incorrect feedback immediately when a visitor selects an answer (li
 }
 ```
 
-When `reveal_on_select` is `true`:
-- The correct answer gets a **green border** immediately after selection
-- A wrong selection gets a **red border**
-- A feedback banner shows "Correct!" or "You got the wrong answer."
-- The explanation text is displayed (if provided)
-- Options become **locked** — the visitor cannot change their answer
+When `reveal_on_select` is `true`, the flow is two-step:
+1. The visitor **selects their answers freely** (options are not locked)
+2. When they click **Continue**, answers are revealed:
+   - Correct answers get a **green border**
+   - Wrong selections get a **red border**
+   - A feedback banner shows "Correct!" or "You got the wrong answer."
+   - The explanation text is displayed (if provided)
+   - Options become **locked**
+   - A banner says "Answers revealed! Review your results above, then click Continue to proceed."
+3. The visitor clicks **Continue again** to proceed to the next page
 
 Works with both `multiple_choice` (single-select) and `checkboxes` (multi-select) components. Omit `reveal_on_select` or set to `false` for the default behavior (no inline feedback — use `reveal_answers` on a later page instead).
 
-### Score-Based Routing
+### Timeline
 
-Route visitors to different results pages based on their quiz score:
+Display a vertical timeline with alternating or single-side layout:
 
 ```json
 {
-  "from": "questions",
-  "to": "high-score-page",
-  "conditions": {
-    "match": "all",
-    "rules": [{ "score": "percent", "operator": "greater_than", "value": 80 }]
+  "id": "process",
+  "type": "timeline",
+  "props": {
+    "variant": "alternating",
+    "items": [
+      { "title": "Step 1: Setup", "description": "Create your account", "icon": "🏠", "color": "#f59e0b" },
+      { "title": "Step 2: Configure", "description": "Set up your campaign", "icon": "🔍", "color": "#ef4444" },
+      { "title": "Step 3: Launch", "description": "Go live", "icon": "📅", "color": "#22c55e" }
+    ]
   }
 }
 ```
 
-### Component Types (56 total)
+**Variants:** `"default"` (all items on the right), `"alternating"` (items alternate left/right on desktop, stack on mobile).
 
-**Input (27):** `short_text`, `long_text`, `rich_text`, `email`, `phone`, `url`, `password`, `number`, `currency`, `date`, `datetime`, `time`, `date_range`, `dropdown`, `multiselect`, `multiple_choice`, `checkboxes`, `picture_choice`, `star_rating`, `slider`, `file_upload`, `signature`, `address`, `location`, `switch`, `checkbox`, `choice_matrix`, `ranking`, `opinion_scale`
+Each item supports: `title` (required), `description` (optional, markdown), `icon` (emoji in colored circle), `image` (URL for a round image), `color` (per-item color, falls back to theme).
 
-**Display (11):** `heading`, `paragraph`, `banner`, `image`, `video`, `pdf_viewer`, `social_links`, `html`, `divider`, `faq`, `testimonial`, `pricing_card`
+### Progress Line
 
-**Layout (3):** `section_collapse`, `table`, `subform`
-
-### Component Width (Multi-Column Layout)
-
-Any component can have a `width` property to create side-by-side layouts. Adjacent sub-full-width components are automatically grouped into flex rows.
-
-**Values:** `"full"` (default), `"half"`, `"third"`, `"two_thirds"`
+Add a thin progress line at the top of the viewport (like Fillout.com) that fills as the visitor progresses:
 
 ```json
 {
-  "components": [
-    { "id": "phone_img", "type": "image", "width": "half", "props": { "src": "https://example.com/phone.png" } },
-    { "id": "phone_text", "type": "paragraph", "width": "half", "props": { "text": "**Your Phone**\n\nThis gig is 100% mobile-friendly." } }
-  ]
+  "settings": {
+    "progress_line": {
+      "enabled": true,
+      "position": "top",
+      "height": 4,
+      "color": "#3b82f6"
+    }
+  }
 }
 ```
 
-Components stack vertically on mobile and go side-by-side on desktop. Mix widths freely — e.g. `"third"` + `"two_thirds"` for a sidebar layout.
+**Options:**
+- `position`: `"top"` (fixed to top of viewport, default) or `"below_topbar"` (below the existing top bar)
+- `height`: pixel height (default 4)
+- `color`: override color (defaults to theme primary_color)
+
+Independent of the existing `progress_bar` setting — both can coexist.
 
 ### Popups
 
@@ -489,9 +528,9 @@ Trigger popups based on visitor behavior:
     {
       "id": "exit-popup",
       "trigger": { "type": "exit_intent", "delay_ms": 3000 },
-      "pages": ["questions"],
+      "pages": ["landing"],
       "mode": "modal",
-      "content": { "title": "Almost done!", "body": "Finish the quiz to see your results" }
+      "content": { "title": "Wait!", "body": "Get 10% off before you go" }
     }
   ]
 }
@@ -501,18 +540,18 @@ Trigger popups based on visitor behavior:
 
 ### Completion Screen
 
-Customize what visitors see after submitting the quiz:
+Customize what visitors see after submitting:
 
 ```json
 {
   "settings": {
     "completion": {
-      "heading": "Thanks for taking the quiz!",
-      "message": "Check your email for your results.",
+      "heading": "You're all set!",
+      "message": "We'll be in touch within 24 hours.",
       "redirect_url": "https://example.com",
       "redirect_delay": 3000,
       "actions": [
-        { "type": "fill_again", "label": "Retake Quiz", "style": "secondary" },
+        { "type": "fill_again", "label": "Submit Again", "style": "secondary" },
         { "type": "share", "label": "Share", "style": "ghost" },
         { "type": "redirect", "label": "Visit Site", "url": "https://example.com", "style": "primary" }
       ]
@@ -543,51 +582,57 @@ Each hook receives a `ScriptContext` with:
 }
 ```
 
-### Condition Operators
-
-`equals`, `not_equals`, `contains`, `not_contains`, `greater_than`, `less_than`, `greater_than_or_equal`, `less_than_or_equal`, `starts_with`, `ends_with`, `regex`, `in`, `not_in`, `is_empty`, `is_not_empty`, `between`
-
 ---
 
 ## CLI
 
-Manage quizzes from the command line:
+Manage catalogs from the command line:
 
 ```bash
-npx catalogs catalog push quiz-schema.json --publish    # Create or update a quiz from a JSON file
-npx catalogs catalog list                                # List all your quizzes
-npx catalogs video upload ./intro.mp4                    # Upload a video
-npx catalogs video status VIDEO_ID                       # Check transcoding progress
+npx catalogs catalog push schema.json --publish    # Create or update a catalog from a JSON file
+npx catalogs catalog list                           # List all your catalogs
+npx catalogs video upload ./intro.mp4               # Upload a video
+npx catalogs video status VIDEO_ID                  # Check transcoding progress
 ```
 
 ---
 
 ## AI Variant Routing
 
-Automatically route visitors to the best quiz variant using natural language hints. Instead of requiring exact variant slugs, pass a description and let the AI pick the right variant.
+Automatically route visitors to the best catalog variant using natural language hints. Instead of requiring exact variant slugs, pass a description and let the AI pick the right variant.
 
 ### Route a visitor with a hint (GET — query param)
 
 ```
 # Using user_id:
-GET https://api.catalogkit.cc/public/route-variant?user_id=USER_ID&slug=marketing-quiz&hint="female entrepreneur interested in social media"
+GET https://api.catalogkit.cc/public/route-variant?user_id=USER_ID&slug=my-catalog&hint="female entrepreneur interested in social media"
 
 # Using custom domain instead:
-GET https://api.catalogkit.cc/public/route-variant?domain=funnels.mycompany.com&slug=marketing-quiz&hint="female entrepreneur interested in social media"
+GET https://api.catalogkit.cc/public/route-variant?domain=funnels.mycompany.com&slug=my-catalog&hint="female entrepreneur interested in social media"
 ```
 
-> **Note:** Use quotes around the hint value for readability — browsers automatically encode `"` to `%22` and spaces to `+`/`%20`. Both `hint`/`hints` and `user_id`/`domain` are accepted.
+> **Note:** Use quotes around the hint value for readability — browsers automatically encode `"` to `%22` and spaces to `+`/`%20`. Both `hint` and `hints` are accepted as the param name. Provide either `user_id` or `domain`.
 
 ### Route a visitor with a hint (POST — JSON body)
 
 If URL encoding is a concern, use the POST alternative with a JSON body:
 
 ```bash
+# Using user_id:
 curl -X POST https://api.catalogkit.cc/public/route-variant \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "USER_ID",
-    "slug": "marketing-quiz",
+    "slug": "my-catalog",
+    "hint": "female entrepreneur interested in social media"
+  }'
+
+# Using custom domain:
+curl -X POST https://api.catalogkit.cc/public/route-variant \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domain": "funnels.mycompany.com",
+    "slug": "my-catalog",
     "hint": "female entrepreneur interested in social media"
   }'
 ```
@@ -606,7 +651,7 @@ Both `hint`/`hints` and `user_id`/`domain` are accepted.
 }
 ```
 
-`reason` values: `ai_matched` (LLM picked best match), `weighted_random` (randomly selected by weight), `hybrid_ai` (hybrid mode, LLM picked), `hybrid_random_fallback` (hybrid mode, LLM failed, random pick), `single_variant` (only one variant exists), `no_variants` (quiz has no variants), `fallback` (LLM couldn't decide, returned first variant). `target_slug` is included when the variant routes to a different quiz.
+`reason` values: `ai_matched` (LLM picked best match), `weighted_random` (randomly selected by weight), `hybrid_ai` (hybrid mode, LLM picked), `hybrid_random_fallback` (hybrid mode, LLM failed, random pick), `single_variant` (only one variant exists), `no_variants` (catalog has no variants), `fallback` (LLM couldn't decide, returned first variant). `target_slug` is included when the variant routes to a different catalog.
 
 ### Frontend hint URLs
 
@@ -614,26 +659,26 @@ The frontend handles AI routing automatically — just add `hint` to the URL. Wo
 
 ```
 # Path-based URL:
-https://SUBDOMAIN.catalogkit.cc/marketing-quiz?hint="female entrepreneur"&ref=253
+https://SUBDOMAIN.catalogkit.cc/my-catalog?hint="female entrepreneur"&ref=253
 
 # Custom domain URL (works the same way):
-https://funnels.mycompany.com/marketing-quiz?hint="female entrepreneur"&ref=253
+https://funnels.mycompany.com/my-catalog?hint="female entrepreneur"&ref=253
 
 # Silent redirect (for affiliates — suppresses event tracking):
-https://SUBDOMAIN.catalogkit.cc/marketing-quiz?hint="problem aware male"&silent_redirect=true&ref=253
+https://SUBDOMAIN.catalogkit.cc/my-catalog?hint="problem aware male"&silent_redirect=true&ref=253
 
 # After AI routing resolves, browser URL updates to the target catalog slug:
 # (uses target_slug when the variant routes to a different catalog, otherwise variant_slug)
-https://SUBDOMAIN.catalogkit.cc/marketing-quiz/welcome-female-quiz?ref=253
+https://SUBDOMAIN.catalogkit.cc/my-catalog/welcome-female-catalog?ref=253
 ```
 
-The frontend holds rendering for up to 400ms while AI routing resolves. If routing completes within that window (typical), visitors see the correct variant directly with no flash. If routing is slow, the base quiz renders first and the variant swaps in when ready.
+The frontend holds rendering for up to 400ms while AI routing resolves. If routing completes within that window (typical), visitors see the correct variant catalog directly with no flash. If routing is slow, the base catalog renders first and the variant swaps in when ready.
 
 ---
 
 ## Sandbox Mode
 
-Edit quizzes safely without affecting production. A sandbox is a full clone of your quiz with its own URL and schema — make changes, preview live, and promote when ready.
+Edit catalogs safely without affecting production. A sandbox is a full clone of your catalog with its own URL and schema — make changes, preview live, and promote when ready.
 
 ### Create a sandbox
 
@@ -653,18 +698,18 @@ POST https://api.catalogkit.cc/api/v1/catalogs/:id/sandbox
   "ok": true,
   "data": {
     "catalog_id": "01ABC...",
-    "slug": "marketing-quiz--redesign-v2",
-    "name": "Marketing Knowledge Quiz (Sandbox: redesign-v2)",
+    "slug": "spring-sale--redesign-v2",
+    "name": "Spring Sale Landing Page (Sandbox: redesign-v2)",
     "sandbox_of": "01HXY...",
-    "parent_slug": "marketing-quiz",
-    "url": "https://SUBDOMAIN.catalogkit.cc/marketing-quiz--redesign-v2"
+    "parent_slug": "spring-sale",
+    "url": "https://SUBDOMAIN.catalogkit.cc/spring-sale--redesign-v2"
   }
 }
 ```
 
-The sandbox is a regular quiz with its own URL. Edit it freely using `PUT /api/v1/catalogs/:sandbox_id` — your production quiz is untouched. The frontend shows an amber "SANDBOX" banner so you always know you're in sandbox mode.
+The sandbox is a regular catalog with its own URL. Edit it freely using `PUT /api/v1/catalogs/:sandbox_id` — your production catalog is untouched. The frontend shows an amber "SANDBOX" banner so you always know you're in sandbox mode.
 
-### List sandboxes for a quiz
+### List sandboxes for a catalog
 
 ```
 GET https://api.catalogkit.cc/api/v1/catalogs/:id/sandboxes
@@ -672,7 +717,7 @@ GET https://api.catalogkit.cc/api/v1/catalogs/:id/sandboxes
 
 ### Promote sandbox to production
 
-Copy the sandbox schema to the parent quiz:
+Copy the sandbox schema to the parent catalog:
 
 ```
 POST https://api.catalogkit.cc/api/v1/catalogs/:sandbox_id/promote
@@ -692,15 +737,15 @@ By default the sandbox is deleted after promotion. Set `"delete_sandbox": false`
 DELETE https://api.catalogkit.cc/api/v1/catalogs/:sandbox_id
 ```
 
-### Listing quizzes with sandboxes
+### Listing catalogs with sandboxes
 
-By default, `GET /api/v1/catalogs` hides sandboxes. Add `?include_sandboxes=true` to include them. Each quiz response includes `sandbox_of` (null for regular quizzes, parent quiz ID for sandboxes).
+By default, `GET /api/v1/catalogs` hides sandboxes. Add `?include_sandboxes=true` to include them. Each catalog response includes `sandbox_of` (null for regular catalogs, parent catalog ID for sandboxes).
 
 ---
 
 ## Element Inspector (DevEx)
 
-Built-in developer tool for AI agent workflows. Hold **Shift+Alt** and hover over any element in a live quiz to see its exact reference path (`pageId/componentId`) with a one-click copy button.
+Built-in developer tool for AI agent workflows. Hold **Shift+Alt** and hover over any element in a live catalog to see its exact reference path (`pageId/componentId`) with a one-click copy button.
 
 This makes it trivial to tell an AI agent exactly which element to modify — no guessing, no digging through JSON.
 
@@ -708,17 +753,17 @@ The reference format matches the schema introspection endpoint (`GET /api/v1/cat
 
 **How to use:**
 
-1. Open any quiz in the browser
+1. Open any catalog in the browser
 2. Hold **Shift+Alt** — a "Inspector active" indicator appears
 3. Hover over any element — it highlights with an indigo border and shows a tooltip with `pageId/componentId (type)`
 4. Click **Copy** to copy the reference to clipboard
-5. Paste the reference into your AI agent conversation (e.g. "change the heading at `questions/hero-title`")
+5. Paste the reference into your AI agent conversation (e.g. "change the heading at `landing/hero-title`")
 
 ---
 
 ## Event Tracking (Free)
 
-Visitor events are tracked automatically by the quiz frontend. You can also send custom events:
+Visitor events are tracked automatically by the catalog frontend. You can also send custom events:
 
 ```
 POST https://api.catalogkit.cc/events
