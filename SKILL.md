@@ -15,7 +15,7 @@ Build and manage interactive quizzes, assessments, and lead-capture funnels — 
 ## What You Can Do
 
 - **Create quizzes** — build scored assessments, personality quizzes, lead qualification funnels from a JSON schema
-- **Publish instantly** — quizzes go live at your custom domain or via user_id path
+- **Publish instantly** — quizzes go live at your subdomain (SUBDOMAIN.catalogkit.cc) or custom domain
 - **Check analytics** — see visitors, completion rates, score distributions, page drop-off, and revenue
 - **View answer breakdowns** — see how visitors answered each question (e.g. "56% chose Option A")
 - **Run A/B tests** — use weighted variants to split traffic to optimize conversions
@@ -35,7 +35,7 @@ After installing Quiz Funnels on OfficeX, you receive credentials automatically.
 CF_API_KEY="cfk_..."
 
 # Production API
-CF_API_URL="https://catalog-funnel-api.cloud.zoomgtm.com"
+CF_API_URL="https://api.catalogkit.cc"
 ```
 
 ### Authentication
@@ -44,7 +44,7 @@ Pass your API key as a Bearer token on all requests:
 
 ```bash
 curl -H "Authorization: Bearer cfk_..." \
-  https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
+  https://api.catalogkit.cc/api/v1/catalogs
 ```
 
 If you installed via OfficeX, you can also use your install credentials:
@@ -52,7 +52,7 @@ If you installed via OfficeX, you can also use your install credentials:
 ```bash
 TOKEN=$(echo -n "${OFFICEX_INSTALL_ID}:${OFFICEX_INSTALL_SECRET}" | base64)
 curl -H "Authorization: Bearer $TOKEN" \
-  https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
+  https://api.catalogkit.cc/api/v1/catalogs
 ```
 
 ---
@@ -64,7 +64,7 @@ Quizzes are catalogs with quiz-scored components. All the same CRUD operations a
 ### List your quizzes
 
 ```
-GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
+GET https://api.catalogkit.cc/api/v1/catalogs
 ```
 
 **Response:**
@@ -88,7 +88,7 @@ GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
 ### Create a quiz
 
 ```
-POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
+POST https://api.catalogkit.cc/api/v1/catalogs
 ```
 
 ```json
@@ -115,7 +115,7 @@ POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
     "name": "Marketing Knowledge Quiz",
     "status": "published",
     "visibility": "public",
-    "url": "https://catalogs.cloud.zoomgtm.com/USER_ID/marketing-quiz"
+    "url": "https://SUBDOMAIN.catalogkit.cc/marketing-quiz"
   }
 }
 ```
@@ -123,7 +123,7 @@ POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs
 ### View a quiz
 
 ```
-GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id
+GET https://api.catalogkit.cc/api/v1/catalogs/:id
 ```
 
 Returns the full quiz including its schema.
@@ -131,7 +131,7 @@ Returns the full quiz including its schema.
 ### Update a quiz
 
 ```
-PUT https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id
+PUT https://api.catalogkit.cc/api/v1/catalogs/:id
 ```
 
 All fields are optional — only send what you want to change:
@@ -153,7 +153,7 @@ When changing the slug, `old_slug_action` controls what happens to the old URL:
 ### Delete a quiz
 
 ```
-DELETE https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id
+DELETE https://api.catalogkit.cc/api/v1/catalogs/:id
 ```
 
 ---
@@ -165,7 +165,7 @@ All analytics endpoints require authentication. Each analytics call costs **1 cr
 ### Overview metrics
 
 ```
-GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id
+GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id
 ```
 
 **Query params:** `start`, `end` (ISO dates, e.g. `2024-01-01`)
@@ -175,7 +175,7 @@ Returns aggregate metrics: unique visitors, total page views, form submissions, 
 ### Timeseries (daily/hourly trends)
 
 ```
-GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/timeseries
+GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id/timeseries
 ```
 
 **Query params (required):** `start`, `end` (ISO dates), `interval` (`day` or `hour`)
@@ -194,7 +194,7 @@ GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/t
 See exactly where visitors abandon your quiz:
 
 ```
-GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/dropoff
+GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id/dropoff
 ```
 
 **Query params:** `start`, `end` (ISO dates)
@@ -220,7 +220,7 @@ GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/d
 See how visitors answered each question — great for understanding what resonates:
 
 ```
-GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/responses
+GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id/responses
 ```
 
 **Query params:** `start`, `end`, `page_id`, `component_id` (all optional)
@@ -248,7 +248,7 @@ GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/r
 Browse individual visitor events with filtering:
 
 ```
-GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/catalogs/:id/events
+GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id/events
 ```
 
 **Query params:** `start`, `end`, `cursor`, `limit` (default 100, max 5000), `event_type`, `page_id`, `component_id`, `variant_slug`, `utm_source`, `utm_medium`, `utm_campaign`, `referrer`
@@ -260,7 +260,7 @@ Response includes a `cursor` for pagination (null when done).
 Trace a single visitor's complete journey through your quiz, including their score:
 
 ```
-GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/analytics/tracers/:tracerId
+GET https://api.catalogkit.cc/api/v1/analytics/tracers/:tracerId
 ```
 
 Returns every event in chronological order with a summary: total events, first/last seen, pages viewed, and whether they submitted.
@@ -292,7 +292,7 @@ Variants with `target_slug` route visitors to a different quiz entirely. Variant
 Get a map of all pages and components in a quiz — useful for understanding the structure before querying analytics:
 
 ```
-GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/schema/ids
+GET https://api.catalogkit.cc/api/v1/catalogs/:id/schema/ids
 ```
 
 ```json
@@ -500,10 +500,10 @@ Automatically route visitors to the best quiz variant using natural language hin
 
 ```
 # Using user_id:
-GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?user_id=USER_ID&slug=marketing-quiz&hint="female entrepreneur interested in social media"
+GET https://api.catalogkit.cc/public/route-variant?user_id=USER_ID&slug=marketing-quiz&hint="female entrepreneur interested in social media"
 
 # Using custom domain instead:
-GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?domain=funnels.mycompany.com&slug=marketing-quiz&hint="female entrepreneur interested in social media"
+GET https://api.catalogkit.cc/public/route-variant?domain=funnels.mycompany.com&slug=marketing-quiz&hint="female entrepreneur interested in social media"
 ```
 
 > **Note:** Use quotes around the hint value for readability — browsers automatically encode `"` to `%22` and spaces to `+`/`%20`. Both `hint`/`hints` and `user_id`/`domain` are accepted.
@@ -513,7 +513,7 @@ GET https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant?domain=fun
 If URL encoding is a concern, use the POST alternative with a JSON body:
 
 ```bash
-curl -X POST https://catalog-funnel-api.cloud.zoomgtm.com/public/route-variant \
+curl -X POST https://api.catalogkit.cc/public/route-variant \
   -H "Content-Type: application/json" \
   -d '{
     "user_id": "USER_ID",
@@ -530,12 +530,13 @@ Both `hint`/`hints` and `user_id`/`domain` are accepted.
   "ok": true,
   "data": {
     "variant_slug": "problem-aware-female",
+    "target_slug": "welcome-female-catalog",
     "reason": "ai_matched"
   }
 }
 ```
 
-`reason` values: `ai_matched` (LLM picked best match), `single_variant` (only one variant exists), `no_variants` (quiz has no variants), `fallback` (LLM couldn't decide, returned first variant).
+`reason` values: `ai_matched` (LLM picked best match), `weighted_random` (randomly selected by weight), `hybrid_ai` (hybrid mode, LLM picked), `hybrid_random_fallback` (hybrid mode, LLM failed, random pick), `single_variant` (only one variant exists), `no_variants` (quiz has no variants), `fallback` (LLM couldn't decide, returned first variant). `target_slug` is included when the variant routes to a different quiz.
 
 ### Frontend hint URLs
 
@@ -543,19 +544,20 @@ The frontend handles AI routing automatically — just add `hint` to the URL. Wo
 
 ```
 # Path-based URL:
-https://catalogs.cloud.zoomgtm.com/USER_ID/marketing-quiz?hint="female entrepreneur"&ref=253
+https://SUBDOMAIN.catalogkit.cc/marketing-quiz?hint="female entrepreneur"&ref=253
 
 # Custom domain URL (works the same way):
 https://funnels.mycompany.com/marketing-quiz?hint="female entrepreneur"&ref=253
 
 # Silent redirect (for affiliates — suppresses event tracking):
-https://catalogs.cloud.zoomgtm.com/USER_ID/marketing-quiz?hint="problem aware male"&silent_redirect=true&ref=253
+https://SUBDOMAIN.catalogkit.cc/marketing-quiz?hint="problem aware male"&silent_redirect=true&ref=253
 
-# After AI routing resolves, browser URL updates to:
-https://catalogs.cloud.zoomgtm.com/USER_ID/marketing-quiz/problem-aware-male?ref=253
+# After AI routing resolves, browser URL updates to the target catalog slug:
+# (uses target_slug when the variant routes to a different catalog, otherwise variant_slug)
+https://SUBDOMAIN.catalogkit.cc/marketing-quiz/welcome-female-quiz?ref=253
 ```
 
-The base quiz renders instantly while AI routing resolves in the background. Visitors never see a loading screen — the variant swap is seamless.
+The frontend holds rendering for up to 400ms while AI routing resolves. If routing completes within that window (typical), visitors see the correct variant directly with no flash. If routing is slow, the base quiz renders first and the variant swaps in when ready.
 
 ---
 
@@ -566,7 +568,7 @@ Edit quizzes safely without affecting production. A sandbox is a full clone of y
 ### Create a sandbox
 
 ```
-POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/sandbox
+POST https://api.catalogkit.cc/api/v1/catalogs/:id/sandbox
 ```
 
 ```json
@@ -585,7 +587,7 @@ POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/sandbox
     "name": "Marketing Knowledge Quiz (Sandbox: redesign-v2)",
     "sandbox_of": "01HXY...",
     "parent_slug": "marketing-quiz",
-    "url": "https://catalogs.cloud.zoomgtm.com/USER_ID/marketing-quiz--redesign-v2"
+    "url": "https://SUBDOMAIN.catalogkit.cc/marketing-quiz--redesign-v2"
   }
 }
 ```
@@ -595,7 +597,7 @@ The sandbox is a regular quiz with its own URL. Edit it freely using `PUT /api/v
 ### List sandboxes for a quiz
 
 ```
-GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/sandboxes
+GET https://api.catalogkit.cc/api/v1/catalogs/:id/sandboxes
 ```
 
 ### Promote sandbox to production
@@ -603,7 +605,7 @@ GET https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:id/sandboxes
 Copy the sandbox schema to the parent quiz:
 
 ```
-POST https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:sandbox_id/promote
+POST https://api.catalogkit.cc/api/v1/catalogs/:sandbox_id/promote
 ```
 
 ```json
@@ -617,7 +619,7 @@ By default the sandbox is deleted after promotion. Set `"delete_sandbox": false`
 ### Discard a sandbox
 
 ```
-DELETE https://catalog-funnel-api.cloud.zoomgtm.com/api/v1/catalogs/:sandbox_id
+DELETE https://api.catalogkit.cc/api/v1/catalogs/:sandbox_id
 ```
 
 ### Listing quizzes with sandboxes
@@ -649,7 +651,7 @@ The reference format matches the schema introspection endpoint (`GET /api/v1/cat
 Visitor events are tracked automatically by the quiz frontend. You can also send custom events:
 
 ```
-POST https://catalog-funnel-api.cloud.zoomgtm.com/events
+POST https://api.catalogkit.cc/events
 ```
 
 **Valid event types:** `page_view`, `field_change`, `field_complete`, `form_submit`, `action_click`, `exit_intent`, `session_start`, `session_resume`, `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `checkout_complete`, `payment_info_added`, `offer_declined`, `lead_captured`, `video_play`, `video_pause`, `video_progress`, `video_complete`, `video_chapter`, `video_seek`
