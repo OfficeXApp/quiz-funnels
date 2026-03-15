@@ -453,6 +453,72 @@ Set theme options under `settings.theme`:
 
 **Page features:** `payment`, `captcha`
 
+### Embedded Buttons
+
+Add inline buttons to `multiple_choice`, `checkboxes`, and `timeline` components. Buttons render alongside each option or timeline item — useful for "check the box after opening this link" patterns.
+
+**On choice options** (`multiple_choice` / `checkboxes`):
+
+```json
+{
+  "id": "checklist",
+  "type": "checkboxes",
+  "props": {
+    "label": "Complete These Steps",
+    "options": [
+      {
+        "value": "download",
+        "label": "Download Telegram",
+        "button": { "label": "Open Telegram", "url": "https://t.me/download", "style": "primary", "size": "sm" }
+      },
+      {
+        "value": "message",
+        "label": "Message Coach AI",
+        "button": { "label": "Open Chat", "url": "https://t.me/coach_bot", "target": "_blank", "icon": "💬" }
+      }
+    ]
+  }
+}
+```
+
+**On timeline items:**
+
+```json
+{
+  "id": "steps",
+  "type": "timeline",
+  "props": {
+    "items": [
+      {
+        "title": "Open Setter Coach AI",
+        "description": "Your AI assistant walks you through Day 1.",
+        "button": { "label": "Open Chat", "url": "https://t.me/coach_bot", "style": "primary", "size": "sm" },
+        "checkbox": true
+      },
+      {
+        "title": "Join Call Center",
+        "description": "Get access to the team channel.",
+        "button": { "label": "Join Channel", "url": "https://t.me/channel", "style": "outline" },
+        "checkbox": { "label": "Joined" }
+      }
+    ]
+  }
+}
+```
+
+**Button properties:**
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `label` | string | *(required)* | Button text |
+| `url` | string | *(required)* | Link URL |
+| `target` | `"_blank"` / `"_self"` | `"_blank"` | Open in new tab or same tab |
+| `size` | `"sm"` / `"md"` / `"lg"` | `"sm"` | Button size |
+| `style` | `"primary"` / `"secondary"` / `"outline"` / `"ghost"` | `"primary"` | Visual style (uses theme color) |
+| `icon` | string | — | Emoji or text icon before label |
+
+**Timeline checkbox:** Set `checkbox: true` for a simple "Done" checkbox, or `checkbox: { "label": "Joined" }` for custom label. Checkboxes are purely visual (client-side toggle, not tracked as form data).
+
 ### Prefill Modes & Readonly Copy
 
 Input components support a `prefill_mode` property that controls how prefilled values are displayed:
@@ -474,9 +540,81 @@ To prefill values, pass them as URL parameters matching the component ID: `?refe
 
 ### Auto-Skip Pages
 
-Set `auto_skip: true` on a page to automatically skip it when all visible input fields already have values (from URL params, defaults, or prior entry). Useful for funnels where prefill makes a page redundant — the visitor jumps straight to the next step. Only skips if the page has at least one visible input and all of them have values. Display-only pages are never auto-skipped. Runs after `on_enter` hooks. Skipped pages do NOT appear in browser history. A `page_auto_skipped` event is tracked.
+Set `auto_skip: true` on a page to automatically skip it when all visible input fields already have values. This is useful for multi-step funnels where URL params or defaults pre-fill a page — the visitor jumps straight to the next page without seeing it.
 
-**Chaining catalogs:** Use `settings.completion.redirect_url` with `{{field_id}}` templates (e.g. `"https://sub.catalogkit.cc/next?email={{comp_email}}"`) to pass form data to the next catalog. The receiving catalog maps URL params to component IDs via `settings.url_params.prefill_mappings` and sets `auto_skip: true` on pages that should be skipped when pre-filled.
+```json
+{
+  "collect_info": {
+    "title": "Your Details",
+    "auto_skip": true,
+    "components": [
+      { "id": "email", "type": "email", "props": { "label": "Email", "required": true } },
+      { "id": "name", "type": "short_text", "props": { "label": "Name", "required": true } }
+    ]
+  }
+}
+```
+
+With `?email=user@example.com&name=John` (mapped via `prefill_mappings`), this page is skipped entirely. Rules:
+- Only skips if the page has at least one visible input and **all** of them have values
+- Display-only pages (no inputs) are never auto-skipped
+- Runs after `on_enter` hooks, so hooks can set values that satisfy the skip condition
+- Skipped pages do NOT appear in browser history (Back button jumps past them)
+- A `page_auto_skipped` analytics event is fired for each skipped page
+
+#### Chaining Catalogs with Auto-Skip
+
+A common pattern is chaining two catalogs together — e.g., a registration form redirects to an onboarding flow, carrying collected data forward so already-answered pages are skipped.
+
+**Step 1: Catalog A — redirect with form values as URL params**
+
+Use `settings.completion.redirect_url` with `{{field_id}}` templates to pass form data to the next catalog:
+
+```json
+{
+  "settings": {
+    "completion": {
+      "redirect_url": "https://yoursubdomain.catalogkit.cc/onboarding?email={{comp_email}}&name={{comp_name}}&phone={{comp_phone}}",
+      "redirect_delay": 0
+    }
+  }
+}
+```
+
+**Step 2: Catalog B — map URL params to component IDs + enable auto_skip**
+
+In the receiving catalog, set up `prefill_mappings` so URL params populate the right fields, and `auto_skip: true` on pages that should be invisible when pre-filled:
+
+```json
+{
+  "settings": {
+    "url_params": {
+      "prefill_mappings": {
+        "email": "comp_email",
+        "name": "comp_name",
+        "phone": "comp_phone"
+      }
+    }
+  },
+  "pages": {
+    "contact_info": {
+      "title": "Your Contact Info",
+      "auto_skip": true,
+      "components": [
+        { "id": "comp_email", "type": "email", "props": { "label": "Email", "required": true } },
+        { "id": "comp_name", "type": "short_text", "props": { "label": "Name", "required": true } },
+        { "id": "comp_phone", "type": "phone", "props": { "label": "Phone" } }
+      ]
+    },
+    "preferences": {
+      "title": "Your Preferences",
+      "components": [...]
+    }
+  }
+}
+```
+
+When a visitor arrives at Catalog B via `?email=a@b.com&name=John&phone=555`, the `contact_info` page is auto-skipped and they land directly on `preferences`. If any param is missing, they see the page with partial prefill.
 
 ### Component Width (Multi-Column Layout)
 
@@ -598,7 +736,7 @@ Display a vertical timeline with alternating or single-side layout:
 
 **Variants:** `"default"` (all items on the right), `"alternating"` (items alternate left/right on desktop, stack on mobile).
 
-Each item supports: `title` (required), `description` (optional, markdown), `icon` (emoji in colored circle), `image` (URL for a round image), `color` (per-item color, falls back to theme).
+Each item supports: `title` (required), `description` (optional, markdown), `icon` (emoji in colored circle), `image` (URL for a round image), `color` (per-item color, falls back to theme), `button` (embedded button, see [Embedded Buttons](#embedded-buttons)), `checkbox` (`true` or `{ "label": "Custom" }` for an interactive checkbox).
 
 ### Progress Line
 
