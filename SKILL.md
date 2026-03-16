@@ -1236,9 +1236,13 @@ Timeline items support an `inputs` array for embedding input fields inside timel
 
 ### Checkboxes as Section Cards
 
-Checkboxes are a first-class section card component. Each option acts as an expandable card — when checked, it reveals nested sub-components (inputs, display content, even other checkboxes) below the toggle row. The toggle and nested content are separate DOM regions so clicks on nested inputs never accidentally toggle the checkbox.
+Checkboxes are a first-class section card component. Each option acts as a card with nested sub-components (inputs, display content, even other checkboxes) below the toggle row. The toggle and nested content are separate DOM regions so clicks on nested inputs never accidentally toggle the checkbox.
 
-Options support: `value`, `label`, `description`, `image` (thumbnail), `button` (side link), and `inputs` (array of nested sub-components).
+**Default behavior:** Nested inputs are **always visible** so users can see what's required before checking. When all `required` nested inputs are filled, the checkbox **auto-checks** itself. This means users just fill in the fields and the checkbox marks itself complete.
+
+**Conditional rendering:** Set `expand_on_select: true` on an option to hide its nested inputs until the checkbox is manually checked (old behavior). Auto-check is disabled for these options.
+
+Options support: `value`, `label`, `description`, `image` (thumbnail), `button` (side link), `expand_on_select` (boolean), and `inputs` (array of nested sub-components).
 
 Values are stored with compound IDs: `checkboxComponentId.optionValue.inputId`.
 
@@ -1270,6 +1274,7 @@ Values are stored with compound IDs: `checkboxComponentId.optionValue.inputId`.
       {
         "value": "preferences",
         "label": "Set Your Preferences",
+        "expand_on_select": true,
         "inputs": [
           { "id": "group_size", "type": "dropdown", "label": "Preferred group size", "props": { "options": ["Small (3-5)", "Medium (6-10)", "Large (10+)"] } },
           { "id": "sub_tasks", "type": "checkboxes", "label": "Sub-tasks", "props": { "options": [
@@ -1298,7 +1303,8 @@ Values are stored with compound IDs: `checkboxComponentId.optionValue.inputId`.
 | `description` | string | Small subtext below the label |
 | `image` | string | Thumbnail image URL (rounded, 32x32) |
 | `button` | EmbeddedButton | Side link button (see [Embedded Buttons](#embedded-buttons)) |
-| `inputs` | array | Nested sub-components revealed when checked |
+| `inputs` | array | Nested sub-components — always visible by default, auto-checks when required inputs filled |
+| `expand_on_select` | boolean | When `true`, nested inputs only show after checkbox is checked (no auto-check). Default: `false` |
 
 ### Progress Line
 
