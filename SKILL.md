@@ -36,11 +36,10 @@ After installing Catalog Kit on OfficeX, you receive credentials automatically. 
 
 ```bash
 # Your API key (created from Settings page or received on install)
-CF_API_KEY="cfk_..."
-
-# Production API
-CF_API_URL="https://api.catalogkit.cc"
+export CATALOG_KIT_TOKEN="cfk_..."
 ```
+
+The production API URL is `https://api.catalogkit.cc` (used by default — no env var needed).
 
 ### Authentication
 
