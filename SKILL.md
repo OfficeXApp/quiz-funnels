@@ -29,6 +29,107 @@ Build and manage marketing catalogs, landing pages, and multi-step funnels — d
 - **Upload & download files** — host downloadable files (PDFs, ZIPs, docs) on S3 with CDN delivery, credit-billed per 50MB
 - **Agent API** — AI agents can fill out catalog forms headlessly via the stateful session API, with server-side validation and progressive disclosure
 - **TypeScript-as-config** — author catalogs as .ts files with full type safety, then push via CLI
+- **Custom JavaScript** — inject custom client-side logic via `html` components with `<script>` tags and the `window.CatalogKit` API bridge
+- **Custom HTML components** — render arbitrary HTML/CSS/JS inside catalogs using `type: "html"` components
+- **Custom React components** — register React components on `window.__catalogkit_components` for fully custom interactive UI
+
+## Scripting & Custom Logic — Overview
+
+Catalog Kit provides **two scripting systems** for custom logic. Understanding when to use each is critical:
+
+### 1. CatalogKit Global API (`window.CatalogKit`) — inline `<script>` in `html` components
+
+**This is the primary scripting system.** Add an `html` component with a `<script>` tag to any page. The script has full access to the catalog runtime via `window.CatalogKit.get()`.
+
+```json
+{
+  "id": "my_script",
+  "type": "html",
+  "props": {
+    "content": "<script>\nconst kit = window.CatalogKit.get();\nkit.on('beforenext:my_page', async (e) => {\n  // custom logic here\n});\n</script>"
+  }
+}
+```
+
+**Essential pattern:** `type: "html"` → `<script>` tag → `window.CatalogKit.get()` → `kit.on(event, callback)`
+
+**Use for:** server-side validation, dynamic routing, conditional UI, API calls, timers, price calculators, submit interception, custom DOM.
+
+**Key API methods:**
+- `kit.getField(id)` / `kit.setField(id, value)` — read/write form fields
+- `kit.on('beforenext:pageId', async (e) => { ... })` — intercept navigation, call `e.preventDefault()` to block
+- `kit.setValidationError(id, msg)` — show inline error on a field
+- `kit.setButtonLoading(bool)` / `kit.setButtonDisabled(bool)` — control the Continue button
+- `kit.setComponentProp(id, prop, value)` — dynamically change any component prop (hide, relabel, swap options)
+- `kit.getVar(key)` / `kit.setVar(key, value)` — script variables (reactive, available in templates as `{{var:key}}`)
+- `kit.getGlobal(key)` / `kit.setGlobal(key, value)` — cross-page globals (persist across navigation)
+
+**Critical mistake to avoid:** `window.CatalogKit` is a **registry**, not an instance. You MUST call `.get()` first:
+```javascript
+// ✅ CORRECT
+const kit = window.CatalogKit.get();
+kit.on('pageenter', () => { ... });
+
+// ❌ WRONG — will throw "is not a function"
+window.CatalogKit.on('pageenter', () => { ... });
+```
+
+### 2. TypeScript page hooks (`on_enter`, `on_change`, `beforenext`) — in `.ts` catalog files
+
+When authoring catalogs as TypeScript, you can write hooks directly on pages as real functions. The CLI serializes them to strings when pushing.
+
+```typescript
+pages: {
+  checkout: {
+    title: "Checkout",
+    components: [...],
+    hooks: {
+      on_enter: (ctx) => {
+        ctx.setButtonDisabled(true);
+        ctx.fetch("https://api.example.com/check")
+          .then(r => r.json())
+          .then(data => { ctx.setField("status", data.status); ctx.setButtonDisabled(false); });
+      },
+      on_change: async (ctx) => {
+        // ctx.field_id, ctx.field_value available
+      },
+    },
+  },
+}
+```
+
+**Use for:** page-level lifecycle hooks in TypeScript catalogs. The `ctx` object has `setField`, `setButtonDisabled`, `setButtonLoading`, `setValidationError`, `setProp`, `fetch`, `field_id`, `field_value`.
+
+### Which to use?
+
+| Scenario | Use |
+|---|---|
+| Server-side validation before navigation | CatalogKit `beforenext` script |
+| Dynamic dropdown options from API | CatalogKit `pageenter` script |
+| Conditional show/hide of components | CatalogKit `fieldchange` script |
+| Price calculator or live widget | CatalogKit script with DOM manipulation |
+| Submit interception to your backend | CatalogKit `submit` script |
+| Simple page-enter/change hooks in TS catalogs | TypeScript page hooks |
+| Custom React component | Register on `window.__catalogkit_components` |
+| Display dynamic data in HTML | Template interpolation: `{{field_id}}`, `{{var:key}}`, `{{global:key}}` |
+
+### Custom HTML & display
+
+`html` components serve double duty — they can render **visible HTML/CSS** AND run **invisible scripts**:
+
+```json
+{
+  "id": "price_display",
+  "type": "html",
+  "props": {
+    "content": "<div style='text-align:center;font-size:32px;font-weight:bold;'>{{var:price}}</div>\n<script>\nconst kit = window.CatalogKit.get();\nkit.on('fieldchange:quantity', () => {\n  kit.setVar('price', '$' + (Number(kit.getField('quantity')) * 29));\n});\n</script>"
+  }
+}
+```
+
+> **Full API reference, events table, and 11 cookbook examples** are in the [CatalogKit Global API](#catalogkit-global-api-windowcatalogkit) section below.
+
+---
 
 ## Getting Started
 
