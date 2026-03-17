@@ -547,6 +547,7 @@ All input components support these base props for labels, help text, and validat
 | `required` | `boolean` | Marks field as required (red asterisk) |
 | `placeholder` | `string` | Placeholder text inside the input |
 | `hidden` | `boolean` | Hides the field from the UI |
+| `copyable` | `boolean` | Show a copy-to-clipboard icon next to the input. Works on editable inputs (short_text, long_text, email, phone, url, number, currency, date, datetime, time, password, dropdown, address). The icon appears once the field has a value. |
 
 Example with all label props:
 ```json
@@ -788,6 +789,20 @@ Input components support a `prefill_mode` property that controls how prefilled v
 ```
 
 To prefill values, pass them as URL parameters matching the component ID: `?referral_code=ABC123`. The readonly input renders with a clipboard icon — clicking it copies the value and shows a brief checkmark confirmation.
+
+#### Copyable (editable inputs with copy icon)
+
+For inputs that should remain **editable** but also let the user easily copy the value, use `copyable: true` in props:
+
+```json
+{
+  "id": "generated_link",
+  "type": "url",
+  "props": { "label": "Your Share Link", "copyable": true }
+}
+```
+
+The copy icon appears next to the input once it has a value. Clicking it copies the current value to clipboard with a checkmark confirmation. Unlike `readonly`, the field remains fully editable. Supported on: `short_text`, `long_text`, `email`, `phone`, `url`, `number`, `currency`, `date`, `datetime`, `time`, `password`, `dropdown`, `address`.
 
 ### Auto-Skip Pages
 
@@ -1482,9 +1497,11 @@ Each item in the `inputs` array has these fields:
 | `label` | string | Display label above the input |
 | `placeholder` | string | Placeholder text |
 | `required` | boolean | Mark this nested input as required. Can be set here OR inside `props.required` — both are supported. |
-| `props` | object | Additional props passed to the input component (e.g. `{ "required": true, "sublabel": "..." }`) |
+| `props` | object | Additional props passed to the input component (e.g. `{ "required": true, "sublabel": "...", "readonly": true }`) |
 
 > **Important for AI agents:** `required` can be placed at `input.required` (top-level) OR `input.props.required` (inside props). Both work identically. Example: `{ "id": "wallet", "type": "solana_address", "required": true }` is equivalent to `{ "id": "wallet", "type": "solana_address", "props": { "required": true } }`.
+
+> **Readonly & Copyable nested inputs:** Set `"readonly": true` inside `props` to render the nested input as a read-only field with a **copy-to-clipboard button** — ideal for pre-filled messages, codes, or links the user needs to copy. Set `"copyable": true` to keep the input editable but add a copy button alongside it. Supported types: `short_text`, `long_text`, `rich_text`, `email`, `phone`, `url`, `number`, `currency`, `date`, `datetime`, `time`, `password`, `dropdown`, `address`. Example: `{ "id": "msg", "type": "long_text", "label": "Message to send", "props": { "readonly": true } }`.
 
 **Option properties:**
 
