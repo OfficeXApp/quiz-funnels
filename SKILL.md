@@ -2584,21 +2584,23 @@ npm install -g @officexapp/catalogs-cli
 
 ### Configuration
 
-The CLI needs one env var: **`CATALOG_KIT_TOKEN`**. The API URL defaults to `https://api.catalogkit.cc` — you almost never need to override it.
+The CLI requires an **explicit** auth token — it will never silently pick up tokens from config files or `.env` files. This prevents accidentally operating on the wrong account.
 
 | Env Var | Required | Default | Description |
 |---|---|---|---|
 | `CATALOG_KIT_TOKEN` | **Yes** | — | Your API key (format: `cfk_...`) |
 | `CATALOG_KIT_API_URL` | No | `https://api.catalogkit.cc` | Override API URL (rarely needed) |
 
-**Config resolution order** (first match wins):
+**Auth resolution** (only two sources, in order):
 
-1. **Environment variables** — `CATALOG_KIT_TOKEN` and `CATALOG_KIT_API_URL`
-2. **Config file** — `~/.catalog-kit/config.json` with `{ "token": "cfk_...", "api_url": "..." }`
-3. **`.env` file** in the current working directory — parses `CATALOG_KIT_TOKEN` and `CATALOG_KIT_API_URL`
-4. **Defaults** — API URL defaults to `https://api.catalogkit.cc`; token is empty (will error)
+1. **`--token` CLI flag** — `catalogs --token cfk_... catalog push schema.json`
+2. **`CATALOG_KIT_TOKEN` environment variable** — `export CATALOG_KIT_TOKEN="cfk_..."`
 
-> **Common mistake:** The env var is `CATALOG_KIT_TOKEN`, not `CATALOGS_TOKEN`. The config dir is `~/.catalog-kit/`, not `~/.catalogs-cli/`. The API URL is hardcoded to `https://api.catalogkit.cc` by default — do not set `CATALOGS_API_URL` (wrong name).
+No config files (`~/.catalog-kit/config.json`) or `.env` files are read. This is intentional — implicit token resolution caused a bug where multiple CLI sessions could silently use different accounts.
+
+> **Safety feature:** Before any mutating operation (`catalog push`, `video upload`), the CLI prints your authenticated identity (subdomain + email) so you can confirm you're operating on the correct account.
+
+> **Common mistake:** The env var is `CATALOG_KIT_TOKEN`, not `CATALOGS_TOKEN`. The API URL is hardcoded to `https://api.catalogkit.cc` by default — do not set `CATALOGS_API_URL` (wrong name).
 
 ### Commands
 
@@ -2616,14 +2618,17 @@ Or run without installing via `npx @officexapp/catalogs-cli <command>`.
 ### Quick start example
 
 ```bash
-# 1. Set your token
+# 1. Set your token (REQUIRED — no other auth sources are used)
 export CATALOG_KIT_TOKEN="cfk_..."
 
-# 2. Test connection
+# 2. Test connection — verify you're on the right account
 catalogs whoami
 
-# 3. Push a catalog
+# 3. Push a catalog (prints your identity before pushing)
 catalogs catalog push my-catalog.ts --publish
+
+# Or pass the token directly:
+catalogs --token cfk_... catalog push my-catalog.ts --publish
 ```
 
 ---
