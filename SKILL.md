@@ -111,7 +111,7 @@ pages: {
 | Submit interception to your backend | CatalogKit `submit` script |
 | Simple page-enter/change hooks in TS catalogs | TypeScript page hooks |
 | Custom React component | Register on `window.__catalogkit_components` |
-| Display dynamic data in HTML | Template interpolation: `{{field_id}}`, `{{var:key}}`, `{{global:key}}` |
+| Display dynamic data in HTML | Template interpolation: `{{field_id}}`, `{{var:key}}`, `{{global:key}}` (supports dotted nested keys like `{{checkboxId.optionValue.inputId}}`) |
 
 ### Custom HTML & display
 
@@ -1968,7 +1968,7 @@ Checkboxes are a first-class section card component. Each option acts as a card 
 
 Options support: `value`, `label`, `description`, `image` (thumbnail), `button` (side link), `expand_on_select` (boolean), and `inputs` (array of nested sub-components).
 
-Values are stored with compound IDs: `checkboxComponentId.optionValue.inputId`.
+Values are stored with compound IDs: `checkboxComponentId.optionValue.inputId`. Nested input `default_value` (in `input.props.default_value` or `input.default_value`) is initialized at startup, so nested values are available via `getAllFields()` and template interpolation (`{{checkboxId.optionValue.inputId}}`) from the first render.
 
 ```json
 {
@@ -2164,8 +2164,8 @@ window.CatalogKit.getField('email');           // .getField() does not exist on 
 | Method | Description |
 |--------|-------------|
 | **Read state** | |
-| `kit.getField(id)` | Get current value of any form field |
-| `kit.getAllFields()` | Frozen copy of all form values |
+| `kit.getField(id)` | Get current value of any form field. For nested checkbox/multiple_choice inputs, use the compound ID: `kit.getField('checkboxId.optionValue.inputId')` |
+| `kit.getAllFields()` | Frozen copy of all form values (includes nested compound keys like `checkboxId.optionValue.inputId`) |
 | `kit.getVar(key)` | Get a script variable (also available in templates as `{{var:key}}`) |
 | `kit.getAllVars()` | Frozen copy of all script variables |
 | `kit.getUrlParam(key)` | Get a URL query parameter |
@@ -2240,7 +2240,7 @@ document.getElementById('email').addEventListener('blur', () => {
 
 `html` components support two features that make the bridge practical:
 
-1. **Template interpolation:** `{{field_id}}`, `{{var:key}}`, and `{{global:key}}` in HTML content are replaced with the current field value, script variable, or global value respectively. Fields and vars are reactive on re-render. Globals persist across pages but don't trigger re-renders on their own (pair with a `setField` or `setVar` call if you need reactivity).
+1. **Template interpolation:** `{{field_id}}`, `{{var:key}}`, and `{{global:key}}` in HTML content are replaced with the current field value, script variable, or global value respectively. Supports dotted nested keys for checkbox/multiple_choice compound IDs (e.g. `{{checkboxId.optionValue.inputId}}`). Whitespace inside braces is tolerated (e.g. `{{ field_id }}`). Fields and vars are reactive on re-render. Globals persist across pages but don't trigger re-renders on their own (pair with a `setField` or `setVar` call if you need reactivity).
 2. **Inline script execution:** `<script>` tags inside `html` content are automatically executed after render, with full access to `window.CatalogKit`.
 
 ```json
