@@ -2,8 +2,8 @@
 name: quiz-funnels
 description: |
   Build and manage marketing catalogs, landing pages, and multi-step funnels with your AI agent. Create catalogs from JSON schemas, publish them instantly, run A/B tests with weighted variants, and track visitor analytics — all through conversation.
-  Use when: (1) Creating or updating a catalog/funnel/landing page, (2) Checking analytics like visitors, conversions, and drop-off rates, (3) Running A/B tests on different catalog versions, (4) AI-routing visitors to the right catalog variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for catalogs, (7) Viewing individual visitor journeys, (8) Reviewing response distributions for form fields, (9) Creating sandboxes to safely edit catalogs without affecting production, (10) Using the element inspector to get exact component references for AI agents, (11) Submitting form data headlessly via the Agent API for AI agent integrations, (12) Uploading and compressing images for fast loading, (13) Authoring catalogs as TypeScript files with full type safety, (14) Uploading and hosting downloadable files (PDFs, ZIPs, docs) with credit-based billing, (15) Building custom interactive UI with the CatalogKit global API bridge (window.CatalogKit) for inline scripts, real-time field access, and multi-form isolation, (16) AI agents can fill out catalog forms step-by-step via the stateful Agent Session API, (17) Configuring advanced Stripe checkout with 3D Secure verification and authorization holds for free trial funnels, (18) Previewing catalogs locally with hot reload before deploying to cloud, (19) Using local file references (images, videos, scripts) that auto-upload to CDN on push.
-  Triggers: catalog funnel, catalog kit, funnel builder, landing page, lead capture, create catalog, catalog analytics, conversion funnel, form builder, ab test, catalog api, ai routing, variant routing, hint routing, sandbox, element inspector, devtools, image upload, image compression, webp, typescript, ts config, file upload, file download, downloadable, hosted files, CatalogKit, window.CatalogKit, global api, inline script, html script, custom ui, api bridge, multi-form, agent api, headless form, agent session, form submission api, stripe checkout, 3d secure, 3ds, free trial, payment verification, trial end behavior, billing server, stripe webhooks, local dev, local preview, dev server, hot reload, local assets, local files, catalogs dev
+  Use when: (1) Creating or updating a catalog/funnel/landing page, (2) Checking analytics like visitors, conversions, and drop-off rates, (3) Running A/B tests on different catalog versions, (4) AI-routing visitors to the right catalog variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for catalogs, (7) Viewing individual visitor journeys, (8) Reviewing response distributions for form fields, (9) Creating sandboxes to safely edit catalogs without affecting production, (10) Using the element inspector to get exact component references for AI agents, (11) Submitting form data headlessly via the Agent API for AI agent integrations, (12) Uploading and compressing images for fast loading, (13) Authoring catalogs as TypeScript files with full type safety, (14) Uploading and hosting downloadable files (PDFs, ZIPs, docs) with credit-based billing, (15) Building custom interactive UI with the CatalogKit global API bridge (window.CatalogKit) for inline scripts, real-time field access, and multi-form isolation, (16) AI agents can fill out catalog forms step-by-step via the stateful Agent Session API, (17) Configuring advanced Stripe checkout with 3D Secure verification and authorization holds for free trial funnels, (18) Previewing catalogs locally with hot reload before deploying to cloud, (19) Using local file references (images, videos, scripts) that auto-upload to CDN on push, (20) Adding cart and checkout to funnels with built-in cart UI (floating button, slide-out drawer, order summary) and Stripe payment integration, (21) Validating catalog schemas locally before pushing, (22) Scaffolding new catalogs from templates, (23) Diffing local vs remote catalog schemas, (24) Testing real Stripe checkout locally with your own test keys, (25) Monitoring local dev events (page views, field changes, checkout) via SSE stream for AI agent testing.
+  Triggers: catalog funnel, catalog kit, funnel builder, landing page, lead capture, create catalog, catalog analytics, conversion funnel, form builder, ab test, catalog api, ai routing, variant routing, hint routing, sandbox, element inspector, devtools, image upload, image compression, webp, typescript, ts config, file upload, file download, downloadable, hosted files, CatalogKit, window.CatalogKit, global api, inline script, html script, custom ui, api bridge, multi-form, agent api, headless form, agent session, form submission api, stripe checkout, 3d secure, 3ds, free trial, payment verification, trial end behavior, billing server, stripe webhooks, local dev, local preview, dev server, hot reload, local assets, local files, catalogs dev, cart, shopping cart, cart sidebar, cart drawer, checkout page, order summary, page offer, offer acceptance, add to cart, cart button, payment page, order bump, upsell, catalog validate, catalog init, catalog diff, catalog open, scaffold template, visibility conditions, debug panel, form state debug, validation overlay, local checkout, stripe test mode, dev events, event stream, local analytics, sse events
 ---
 
 # Catalog Kit
@@ -27,10 +27,17 @@ Build and manage marketing catalogs, landing pages, and multi-step funnels — d
 - **Upload images (free)** — automatic WebP compression, thumbnail generation, and CDN delivery at no credit cost
 - **Upload videos** — automatic HLS transcoding for adaptive streaming, served via CDN
 - **Upload & download files** — host downloadable files (PDFs, ZIPs, docs) on S3 with CDN delivery, credit-billed per 50MB
+- **Cart & checkout** — built-in cart UI (floating button + slide-out drawer) that collects page offers and sends them to Stripe Checkout. No custom cart HTML needed
 - **Agent API** — AI agents can fill out catalog forms headlessly via the stateful session API, with server-side validation and progressive disclosure
 - **TypeScript-as-config** — author catalogs as .ts files with full type safety, then push via CLI
-- **Local preview** — `catalogs catalog dev my-catalog.ts` previews locally with hot reload, no deploy needed
+- **Local preview** — `catalogs catalog dev my-catalog.ts` previews locally with hot reload, visibility conditions, debug panel (`Ctrl+D`), and validation overlay
 - **Local file references** — use `./images/hero.png` in schemas, auto-uploaded to CDN on push
+- **Validate locally** — `catalogs catalog validate my-catalog.ts` checks routing, component IDs, orphan pages, and more — no token needed
+- **Scaffold catalogs** — `catalogs catalog init` creates a new catalog from a template (quiz-funnel, lead-capture, product-catalog, blank)
+- **Diff against remote** — `catalogs catalog diff my-catalog.ts` shows structural changes vs the deployed version
+- **Open in browser** — `catalogs catalog open my-slug` opens the published catalog URL in your default browser
+- **Local Stripe checkout** — add `STRIPE_SECRET_KEY=sk_test_...` to your `.env` and the dev server creates real Stripe checkout sessions locally. Keys never leave your machine
+- **Local dev events** — page views, field changes, and checkout events stream to your terminal and an SSE endpoint (`/__dev_events_stream`) that AI agents can subscribe to. Zero production pollution
 - **Custom JavaScript** — inject custom client-side logic via `html` components with `<script>` tags and the `window.CatalogKit` API bridge
 - **Custom HTML components** — render arbitrary HTML/CSS/JS inside catalogs using `type: "html"` components
 - **Custom React components** — register React components on `window.__catalogkit_components` for fully custom interactive UI
@@ -2333,6 +2340,10 @@ window.CatalogKit.getField('email');           // .getField() does not exist on 
 | `kit.goBack()` | Go to previous page |
 | **Component props** | |
 | `kit.setComponentProp(id, prop, value)` | Override any component prop at runtime (e.g. `hidden`, `label`, `options`). Works on ALL component types — display and input alike |
+| **Cart** | |
+| `kit.openCart()` | Open the cart drawer programmatically |
+| `kit.closeCart()` | Close the cart drawer |
+| `kit.getCartItems()` | Get a frozen array of current cart items |
 | **Events** | |
 | `kit.on(event, callback)` | Subscribe to lifecycle events (see Events section below) |
 | `kit.off(event, callback)` | Unsubscribe |
@@ -2350,6 +2361,11 @@ Events follow the pattern `event` or `event:scope_id`. Unscoped listeners fire f
 | `pageexit` | page ID | `{ pageId }` | Yes | About to leave page (after beforenext) |
 | `beforenext` | page ID | `{ pageId, preventDefault(), setNextPage(id) }` | Yes | After validation, before navigation — can block or redirect |
 | `submit` | page ID | `{ pageId, formState, preventDefault() }` | Yes | Final page submission — can block |
+| `cart_add` | — | `{ item, items }` | No | Offer added to cart |
+| `cart_remove` | — | `{ offer_id, items }` | No | Offer removed from cart |
+| `cart_open` | — | `{ items }` | No | Cart drawer opened |
+| `cart_close` | — | `{ items }` | No | Cart drawer closed |
+| `before_checkout` | — | `{ items, preventDefault() }` | Yes | Before checkout — can block or redirect |
 
 **Scoping examples:**
 
@@ -2722,6 +2738,8 @@ Install the CLI from npm:
 npm install -g @officexapp/catalogs-cli
 ```
 
+> **Node.js requirement:** Node 18–22 (LTS recommended). Node 24+ is **not supported** — it breaks the `tsx` ESM loader hooks used to load TypeScript catalog files at runtime. We recommend **Node 20 or 22 LTS**. The CLI enforces this at startup — if your Node version is outside the 18–22 range it will refuse to run and print instructions to install a compatible version via [NVM](https://github.com/nvm-sh/nvm).
+
 ### Configuration
 
 The CLI requires an **explicit** auth token — it will never silently pick up tokens from config files or `.env` files. This prevents accidentally operating on the wrong account.
@@ -2793,7 +2811,39 @@ catalogs catalog dev my-catalog.ts
 
 No token required — `dev` mode is purely local. Edit your catalog file and save — the browser auto-refreshes via SSE.
 
-**Dev server features:** production-quality rendering with shared engine (conditions/routing/validation identical to prod), auto-reload on save, form validation with error UI, page actions, prefill & default values, auto-skip pages, browser history, localStorage session persistence with resume prompt, full cart UI, sticky bottom bar, `__variants` resolution, CatalogKit scripting API, video watch tracking, 22+ input types, 20+ display components, pages mindmap, element inspector, local Stripe checkout, local dev events.
+**Dev server features:**
+- **Production-quality rendering** — uses the same fonts (Outfit + DM Sans), CSS classes (`.cf-*`), and component styling as the live site
+- **Shared engine** — conditions, routing, and validation use the exact same code as production (inlined at build time from `shared/engine/`), eliminating dev/prod divergence
+- **Auto-reload** — browser refreshes automatically when you save your catalog file (SSE-based, no manual refresh needed)
+- **Cover page layouts** — dark gradient overlay with floating content animation, matching production exactly
+- **Interactive form state** — inputs maintain state, conditional routing works based on form values
+- **Form validation** — `validatePage()` runs before advancing: required fields, email/URL/number format, min/max constraints. Red border + error message on invalid fields, auto-scroll to first error
+- **Page actions** — `page.actions` render as styled buttons (primary, secondary, danger, ghost) with icon, side_statement, and reassurance support. Actions validate, set `__action_{pageId}` in formState, check offer acceptance, and route to next page
+- **Prefill & default values** — `default_value` on components initializes formState on mount. URL param prefill via `settings.url_params.prefill_mappings`. `prefill_mode: "hidden"` hides prefilled fields; `prefill_mode: "readonly"` renders them as display-only text
+- **Auto-skip pages** — pages with `auto_skip: true` are skipped (via `replaceState`) when all visible required inputs already have values
+- **Browser history** — pushState/popstate integration: browser back button returns to previous page, auto-skip uses replaceState to stay invisible in history
+- **Session persistence** — formState, currentPageId, and history are saved to localStorage (keyed by catalog slug). On return, a "Resume" / "Start Over" prompt appears if the user left mid-funnel. Cleared on submission
+- **Cart & offers** — full cart UI (floating button + slide-out drawer) that collects page offers via `accept_field`/`accept_value`. Cart persists across pages, items can be removed
+- **Cart settings** — `settings.cart`: `position` (4 corners), `hide_button`, `title`, `checkout_button_text`, `checkout_url` (external redirect)
+- **Sticky bottom bar** — `settings.sticky_bar` or `page.sticky_bar`: delay, scroll direction show/hide, template interpolation (`{{fieldId}}`), style variants (solid, glass, glass_dark, gradient), primary action dispatch, secondary actions, `field:<id>:<value>` dispatch
+- **`__variants` resolution** — `*__variants` keys on component props and actions are resolved against hints (from `catalog.hints.defaults` + URL `?variant=slug`). Highest-scoring condition match wins
+- **CatalogKit scripting API** — `window.CatalogKit` exposes `getField`, `setField`, `getPageId`, `goNext`, `goBack`, `on`/`off` event listeners (`pageenter`, `pageexit`, `fieldchange`, etc.), and `setValidationError`. Inline `<script>` tags in `html` components are executed via `new Function()` (fingerprinted to avoid re-execution on re-renders)
+- **Video watch tracking** — native `<video>` elements report `watch_percent` via `timeupdate`. Pages with `require_watch_percent` block navigation until the threshold is met
+- **Hidden components respected** — components with `hidden: true` (at component level or `props.hidden`) are properly excluded from rendering, matching production behavior
+- **Visibility conditions** — components with `visibility` condition groups are live-evaluated against formState and URL params (all 13 operators supported)
+- **Page navigator** — click "Pages" in the dev banner to see a visual mindmap of all pages and routing edges, click any node to jump there
+- **Element inspector** — hold Shift+Alt to hover any component and click to copy its `pageId/componentId` reference (for AI agents)
+- **Dev banner** — always visible at top showing slug, checkout mode (live test or stubbed), events status, pages mindmap link, debug toggle, and validation status
+- **Debug panel** — click "Debug" in the dev banner or press `Ctrl+D` to toggle; shows current page, live formState JSON, cart items, routing edges from current page, and last 8 dev events
+- **Validation overlay** — validation errors and warnings appear in a dropdown in the dev banner, reappears on hot reload, dismissible
+- **Routing** — conditional page routing works locally using the shared engine (supports all operators, condition groups, edge priority, default edges)
+- **Local Stripe checkout** — add `STRIPE_SECRET_KEY=sk_test_...` to your `.env` and the dev server creates real Stripe checkout sessions locally via Stripe REST API. Supports subscriptions, trials, promo codes, customer email prefill, and `stripe_price_id` references. Falls back to informative stub with payload preview when no key found
+- **Local dev events** — page views, field changes, and checkout events stream to your terminal and broadcast via SSE at `/__dev_events_stream`. AI agents can subscribe. Recent events available as JSON at `GET /__dev_events?limit=50`. Zero production pollution
+
+**Dev Preview Feature Parity:**
+- **Supported component types (inputs):** short_text, long_text, email, phone, url, number, password, dropdown, multiple_choice, checkboxes, picture_choice, slider, star_rating, switch/checkbox, opinion_scale, date, datetime, time, date_range, address, currency, file_upload (stubbed), signature (stubbed)
+- **Supported component types (display):** heading, paragraph, image, video, html, banner, callout, divider, pricing_card, testimonial, faq, accordion, timeline, file_download, iframe, table, social_links, tabs, countdown, comparison_table, progress_bar, modal
+- **Prod-only features** (not in dev preview): popup/overlay modals with embedded inputs, quiz scoring & reveal, full analytics pipeline, AI prefill, EVM/Solana/Bitcoin address inputs, custom components via `window.__catalogkit_components`
 
 ### Local file references
 
@@ -2875,10 +2925,12 @@ my-project/
 
 | Feature | Dev mode | Production |
 |---|---|---|
-| Stripe checkout | Stubbed (visual indicator) | Live |
-| Analytics/events | Disabled | Enabled |
+| Stripe checkout | Live (test key) if `STRIPE_SECRET_KEY` in `.env`, otherwise stubbed with payload preview | Live |
+| Events | Local only — terminal + SSE stream (`/__dev_events_stream`) | Production analytics |
 | File serving | Local filesystem | CDN (CloudFront) |
-| Hot reload | On file save | N/A |
+| Hot reload | On file save (SSE) | N/A |
+| Debug panel | `Ctrl+D` — formState, cart, routing, events | N/A |
+| Validation | Live overlay in dev banner | N/A |
 
 ---
 
@@ -3163,6 +3215,201 @@ Built-in developer tool for AI agent workflows. Hold **Shift+Alt** and hover ove
 2. User pastes into Claude: "change this element: `{...copied JSON...}` to say 'Welcome Back'"
 3. AI agent reads the `catalog_id`, `page_id`, `component_id`, and `api_endpoint` from the JSON
 4. AI agent fetches the catalog via `GET /api/v1/catalogs/{catalog_id}`, finds the component at `schema.pages.{page_id}.components` where `id == component_id`, updates the text, and PUTs back
+
+---
+
+## Cart & Checkout
+
+Catalog Kit has a **built-in cart and checkout system**. You do NOT need to build custom cart HTML — the platform provides a floating cart button, a slide-out cart drawer, and a full checkout page out of the box.
+
+### How it works
+
+1. **Page offers** — each page can define an `offer` object. When the visitor accepts the offer (via a form field), the item is automatically added to the cart.
+2. **Cart button** — a floating button appears in the bottom-right corner showing the cart item count. It only appears when items are in the cart.
+3. **Cart drawer** — clicking the cart button opens a right-side slide-out panel showing all accepted offers with images, titles, prices, and a remove button. A "Proceed to Checkout" button takes the visitor to the checkout page.
+4. **Checkout page** — displays an order summary of all cart items and redirects to Stripe Checkout to complete payment.
+
+### Checkout settings
+
+Configure checkout in `settings.checkout`:
+
+```jsonc
+{
+  "settings": {
+    "checkout": {
+      "payment_type": "one_time",             // "one_time" | "subscription" | "pay_what_you_want"
+      "title": "Complete Your Order",
+      "stripe_publishable_key": "pk_live_...",
+
+      // Payment options
+      "allow_discount_codes": true,            // Show promo code field at Stripe checkout
+      "free_trial": { "enabled": true, "days": 14 },  // Subscriptions only
+      "payment_methods": ["card", "link"],
+      "payment_description": "My Product",
+      "client_reference_id": "{{comp_email}}", // Template strings supported
+
+      // Prefill from form fields
+      "prefill_fields": {
+        "customer_email": "comp_email",        // Component ID to read email from
+        "customer_name": "comp_name",
+        "customer_phone": "comp_phone"
+      },
+
+      // Appearance
+      "button_text": "Subscribe Now",
+      "testimonial": {
+        "enabled": true,
+        "text": "Best investment I've made...",
+        "author": "Jane S.",
+        "avatar": "https://..."
+      },
+      "show_disclaimer": true,
+      "disclaimer_text": "By purchasing you agree to our Terms",
+      "components": [],                        // Extra display components below order summary
+
+      // After payment
+      "send_receipt": true,
+      "success_redirect": "https://...",
+      "success_page_id": "thank_you"
+    }
+  }
+}
+```
+
+You also need to set your Stripe secret key via the settings API (see "Update settings" above):
+```json
+{ "stripe_secret_key": "rk_live_..." }
+```
+
+### Page offers (cart items)
+
+Define an `offer` on any page. When the visitor's form field matches the `accept_value`, the offer is added to the cart automatically:
+
+```jsonc
+{
+  "id": "pricing",
+  "title": "Choose Your Plan",
+  "components": [
+    {
+      "id": "offer_choice",
+      "type": "multiple_choice",
+      "label": "Select an option",
+      "options": [
+        { "value": "accept", "label": "Yes, I want this!" },
+        { "value": "decline", "label": "No thanks" }
+      ]
+    }
+  ],
+  "offer": {
+    "id": "growth-bundle",
+    "title": "Growth Bundle",
+    "price_display": "$49/mo",
+    "stripe_price_id": "price_...",   // Use a Stripe Price ID...
+    // OR use inline pricing (no pre-configured Stripe price needed):
+    // "amount_cents": 4900,          // $49.00
+    // "currency": "usd",             // default: "usd"
+    // "payment_type": "subscription", // "one_time" | "subscription" | "pay_what_you_want"
+    // "interval": "month",           // for subscriptions: "day" | "week" | "month" | "year"
+    "image": "https://...",
+    "accept_field": "offer_choice",     // Component ID to watch
+    "accept_value": "accept"            // Value that triggers add-to-cart
+  }
+}
+```
+
+**IMPORTANT:** Every offer that goes through Stripe checkout must have either `stripe_price_id` (a pre-configured Stripe Price) OR `amount_cents` (inline pricing). Without one of these, checkout will fail with a "Missing required param" error. Use `price_display` for the human-readable price shown in the UI.
+
+Cart items accumulate across pages — each page can present a different offer (e.g., main product on page 1, upsell on page 2, order bump on page 3). All accepted offers become Stripe Checkout line items.
+
+### Cart item buttons
+
+Cart items support an optional `button` that renders as a side link next to the price in the cart drawer and checkout summary:
+
+```jsonc
+{
+  "offer": {
+    "id": "growth-bundle",
+    "title": "Growth Bundle",
+    "price_display": "$49/mo",
+    "stripe_price_id": "price_...",
+    "button": { "label": "Details", "url": "https://example.com/growth", "style": "secondary", "size": "sm" }
+  }
+}
+```
+
+### Supported checkout targets
+
+Stripe hosted checkout is the default, but you can also redirect to: Polar.sh, LemonSqueezy, Gumroad, or any custom URL.
+
+### Cart customization (`settings.cart`)
+
+Customize the floating cart button, slide-out drawer, and checkout flow. All HTML fields support `{{field_id}}` template interpolation.
+
+```jsonc
+{
+  "settings": {
+    "cart": {
+      // Config
+      "icon": "bag",                           // "cart" (default) | "bag" | "basket" | image URL
+      "title": "Your Selection",               // Drawer title (default: "Your Cart")
+      "checkout_button_text": "Complete Order", // Override "Proceed to Checkout" text
+      "checkout_url": "https://pay.example.com?email={{email}}", // External URL (skips built-in checkout)
+      "position": "bottom-left",               // "bottom-right" (default) | "bottom-left" | "top-right" | "top-left"
+      "hide_button": false,                    // Hide floating button (use kit.openCart() to open programmatically)
+
+      // HTML/CSS slots
+      "header_html": "<div class='my-header'>Custom Header</div>",  // Replaces default header
+      "footer_html": "<p>30-day money-back guarantee</p>",          // Inserted above checkout button
+      "empty_html": "<p>Browse our offers to get started</p>",      // Replaces default empty state
+      "css": ".ck-cart-drawer { border-radius: 16px; } .ck-cart-checkout-btn { background: linear-gradient(135deg, #667eea, #764ba2) !important; }"
+    }
+  }
+}
+```
+
+**CSS class hooks** for external styling: `.ck-cart-drawer`, `.ck-cart-header`, `.ck-cart-empty`, `.ck-cart-item[data-offer-id="..."]`, `.ck-cart-footer`, `.ck-cart-footer-custom`, `.ck-cart-checkout-btn`.
+
+**Icon presets:**
+| Preset | Description |
+|--------|-------------|
+| `"cart"` | Shopping cart (default) |
+| `"bag"` | Shopping bag |
+| `"basket"` | Shopping basket |
+| `"https://..."` | Custom image URL |
+
+### Cart events (analytics + JS)
+
+The following events are tracked automatically: `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `checkout_complete`.
+
+**JavaScript events** via `window.CatalogKit`:
+
+| Event | Payload | Cancelable | Description |
+|-------|---------|------------|-------------|
+| `cart_add` | `{ item, items }` | No | An offer was added to the cart |
+| `cart_remove` | `{ offer_id, items }` | No | An offer was removed from the cart |
+| `cart_open` | `{ items }` | No | Cart drawer opened |
+| `cart_close` | `{ items }` | No | Cart drawer closed |
+| `before_checkout` | `{ items, preventDefault() }` | Yes | Fires before checkout — call `preventDefault()` to cancel and handle yourself |
+
+```javascript
+const kit = window.CatalogKit.get();
+
+// Track cart additions
+kit.on('cart_add', (e) => {
+  console.log('Added:', e.item.title, 'Total items:', e.items.length);
+});
+
+// Intercept checkout — redirect to external payment
+kit.on('before_checkout', (e) => {
+  e.preventDefault();
+  window.location.href = 'https://my-custom-checkout.com?items=' + e.items.length;
+});
+
+// Programmatic cart control
+kit.openCart();    // Open the cart drawer
+kit.closeCart();   // Close the cart drawer
+kit.getCartItems(); // Get frozen array of current cart items
+```
 
 ---
 
