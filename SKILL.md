@@ -2791,7 +2791,9 @@ catalogs catalog dev my-catalog.ts
 # => Watching for changes...
 ```
 
-No token required — `dev` mode is purely local. Edit your catalog file, save, refresh the browser.
+No token required — `dev` mode is purely local. Edit your catalog file and save — the browser auto-refreshes via SSE.
+
+**Dev server features:** production-quality rendering with shared engine (conditions/routing/validation identical to prod), auto-reload on save, form validation with error UI, page actions, prefill & default values, auto-skip pages, browser history, localStorage session persistence with resume prompt, full cart UI, sticky bottom bar, `__variants` resolution, CatalogKit scripting API, video watch tracking, 22+ input types, 20+ display components, pages mindmap, element inspector, local Stripe checkout, local dev events.
 
 ### Local file references
 
