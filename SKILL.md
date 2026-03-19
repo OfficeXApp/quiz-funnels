@@ -20,7 +20,7 @@ Build and manage marketing catalogs, landing pages, and multi-step funnels — d
 - **Run A/B tests** — use weighted variants to split traffic to find what converts best
 - **AI variant routing & prefill** — auto-route visitors to the best catalog variant and pre-fill qualifying form fields using natural language hints
 - **Sandbox editing** — clone a catalog to safely make changes without affecting the live version, then promote when ready
-- **Element inspector** — hold Shift+Alt to hover-inspect any element (including the top navbar) and copy its exact `pageId/componentId` reference for AI agents
+- **Element inspector** — hold Shift+Alt to hover-inspect any element (page components, top navbar, cart button, cart drawer, cart items, sticky bottom bar, checkout page, popups) and copy its exact `pageId/componentId` reference for AI agents
 - **View visitor journeys** — trace exactly what each visitor did step by step
 - **Manage access** — create API keys for team members or integrations
 - **Managed media hosting** — images and videos are stored, compressed, and served via CDN for you — no need to bring your own S3 bucket
@@ -2306,7 +2306,7 @@ For custom client-side logic, use the `window.CatalogKit` global API via inline 
 
 Available events: `pageenter`, `pageexit`, `beforenext`, `submit`, `fieldchange` — all support scoping (e.g., `fieldchange:email`).
 
-Available methods: `getField`, `setField`, `getAllFields`, `setButtonLoading`, `setButtonDisabled`, `setValidationError`, `setComponentProp`, `goNext`, `goBack`.
+Available methods: `getField`, `setField`, `getAllFields`, `setButtonLoading`, `setButtonDisabled`, `setValidationError`, `setComponentProp`, `goNext`, `goBack`, `goToPage`.
 
 ---
 
@@ -2355,6 +2355,7 @@ window.CatalogKit.getField('email');           // .getField() does not exist on 
 | **Navigation** | |
 | `kit.goNext()` | Advance to next page (runs validation + hooks) |
 | `kit.goBack()` | Go to previous page |
+| `kit.goToPage(pageId)` | Navigate directly to any page by ID (adds current page to history, no validation) |
 | **Component props** | |
 | `kit.setComponentProp(id, prop, value)` | Override any component prop at runtime (e.g. `hidden`, `label`, `options`). Works on ALL component types — display and input alike |
 | **Cart** | |
@@ -2852,12 +2853,12 @@ No token required — `dev` mode is purely local. Edit your catalog file and sav
 - **Cart settings** — `settings.cart`: `position` (4 corners), `hide_button`, `title`, `checkout_button_text`, `checkout_url` (external redirect)
 - **Sticky bottom bar** — `settings.sticky_bar` or `page.sticky_bar`: delay, scroll direction show/hide, template interpolation (`{{fieldId}}`), style variants (solid, glass, glass_dark, gradient), primary action dispatch, secondary actions, `field:<id>:<value>` dispatch
 - **`__variants` resolution** — `*__variants` keys on component props and actions are resolved against hints (from `catalog.hints.defaults` + URL `?variant=slug`). Highest-scoring condition match wins
-- **CatalogKit scripting API** — `window.CatalogKit` exposes `getField`, `setField`, `getPageId`, `goNext`, `goBack`, `on`/`off` event listeners (`pageenter`, `pageexit`, `fieldchange`, etc.), and `setValidationError`. Inline `<script>` tags in `html` components are executed via `new Function()` (fingerprinted to avoid re-execution on re-renders)
+- **CatalogKit scripting API** — `window.CatalogKit` exposes `getField`, `setField`, `getPageId`, `goNext`, `goBack`, `goToPage`, `on`/`off` event listeners (`pageenter`, `pageexit`, `fieldchange`, etc.), and `setValidationError`. Inline `<script>` tags in `html` components are executed via `new Function()` (fingerprinted to avoid re-execution on re-renders)
 - **Video watch tracking** — native `<video>` elements report `watch_percent` via `timeupdate`. Pages with `require_watch_percent` block navigation until the threshold is met
 - **Hidden components respected** — components with `hidden: true` (at component level or `props.hidden`) are properly excluded from rendering, matching production behavior
 - **Visibility conditions** — components with `visibility` condition groups are live-evaluated against formState and URL params (all 13 operators supported)
 - **Page navigator** — click "Pages" in the dev banner to see a visual mindmap of all pages and routing edges, click any node to jump there
-- **Element inspector** — hold Shift+Alt to hover any component and click to copy its `pageId/componentId` reference (for AI agents)
+- **Element inspector** — hold Shift+Alt to hover any component (including cart, sticky bar, checkout page, popups) and click to copy its `pageId/componentId` reference (for AI agents)
 - **Dev banner** — always visible at top showing slug, checkout mode (live test or stubbed), events status, pages mindmap link, debug toggle, and validation status
 - **Debug panel** — click "Debug" in the dev banner or press `Ctrl+D` to toggle; shows current page, live formState JSON, cart items, routing edges from current page, and last 8 dev events
 - **Validation overlay** — validation errors and warnings appear in a dropdown in the dev banner, reappears on hot reload, dismissible
@@ -3231,6 +3232,19 @@ Built-in developer tool for AI agent workflows. Hold **Shift+Alt** and hover ove
 | `api_endpoint` | Ready-to-use PUT endpoint for updating the catalog |
 
 **Sub-element targeting:** The inspector drills into child elements within components. Hovering a label, button, input, image, heading, or option card shows a more specific reference with a `#` suffix — e.g. `landing/email_field#label`, `landing/cta#button`, `quiz_page/q1#option:b`.
+
+**Global UI elements:** The inspector also covers elements outside the page content area. These use `page_id: "__global"` or `page_id: "__checkout"`:
+
+| Element | `component_id` | `component_type` |
+|---|---|---|
+| Floating cart button | `__cart_button` | `cart_button` |
+| Cart sidebar drawer | `__cart_drawer` | `cart_drawer` |
+| Individual cart item | `__cart_item_{offer_id}` | `cart_item` |
+| Cart checkout button | `__cart_checkout_button` | `cart_checkout_button` |
+| Sticky bottom bar | `__sticky_bottom_bar` | `sticky_bottom_bar` |
+| Checkout page | `__checkout_page` | `checkout_page` |
+| Checkout pay button | `__checkout_pay_button` | `checkout_pay_button` |
+| Popup dialog | `__popup_{popupId}` | `popup` |
 
 **Detail panel:** After clicking to copy, a dismissible panel appears in the bottom-right showing the full JSON that was copied. This persists after releasing Shift+Alt so you can review what was captured.
 
