@@ -2792,7 +2792,7 @@ The CLI requires an **explicit** auth token — it will never silently pick up t
 1. **`--token` CLI flag** — `catalogs --token cfk_... catalog push schema.json`
 2. **`CATALOG_KIT_TOKEN` environment variable** — `export CATALOG_KIT_TOKEN="cfk_..."`
 
-No config files (`~/.catalog-kit/config.json`) or `.env` files are read. This is intentional — implicit token resolution caused a bug where multiple CLI sessions could silently use different accounts.
+No config files (`~/.catalog-kit/config.json`) are read for auth. This is intentional — implicit token resolution caused a bug where multiple CLI sessions could silently use different accounts. However, both `catalog dev` and `catalog push` **do** auto-load `.env`, `.env.local`, and `.env.development` files from the catalog directory for non-auth variables (e.g. `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`). Already-set environment variables are never overridden.
 
 > **Safety feature:** Before any mutating operation (`catalog push`, `video upload`), the CLI prints your authenticated identity (subdomain + email) so you can confirm you're operating on the correct account.
 
