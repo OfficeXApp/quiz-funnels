@@ -2680,6 +2680,8 @@ When checkboxes have nested inputs (e.g. proof URLs, wallet addresses), you **mu
 | `setValidationError` doesn't display anything | Wrong `componentId` passed — must match the `id` of an input component on the current page | Check the component `id` in your schema matches the first argument |
 | Script doesn't execute | `html` component not on the current page, or `content` prop missing `<script>` tags | Ensure the `html` component is in the page's `components` array and the content is wrapped in `<script>...</script>` |
 | Checkout crashes or behaves differently in prod vs dev | Using DOM manipulation (`document.querySelector`) to click the cart checkout button after `preventDefault()` + `setTimeout` | Use a terminal page (no outgoing routing edges) so checkout triggers automatically, or call `kit.startCheckout()`. See [Triggering Checkout](#triggering-checkout) |
+| `Unexpected token '<', "<!DOCTYPE"... is not valid JSON` on checkout | Outdated CLI — the dev server fetch interceptor is missing the `/checkout/intent` route | Run `npm install -g @officexapp/catalogs-cli@latest` to update. Ensure both `STRIPE_SECRET_KEY` and `STRIPE_PUBLISHABLE_KEY` are in your `.env` file in the catalog directory |
+| Stripe checkout shows "not configured" error | Missing Stripe keys in `.env` | Create a `.env` file in your catalog project directory with `STRIPE_SECRET_KEY=sk_test_...` and `STRIPE_PUBLISHABLE_KEY=pk_test_...`. The dev server checks the catalog directory, not your home directory |
 
 ### Debug mode
 
