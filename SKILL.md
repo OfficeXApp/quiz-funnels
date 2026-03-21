@@ -2371,6 +2371,9 @@ window.CatalogKit.getField('email');           // .getField() does not exist on 
 | `kit.setPaymentItems(items)` | Override line items sent to Stripe at checkout. Pass `null` to clear and fall back to display items. Lets you show a bundled deal in the UI while sending itemized charges to Stripe |
 | `kit.getPaymentItems()` | Get the current Stripe override array, or `null` if using display items |
 | `kit.startCheckout()` | Programmatically trigger the built-in checkout page (fires `before_checkout`, then shows checkout). Use this instead of DOM-clicking the cart checkout button |
+| **Client reference ID** (passed to Stripe as `client_reference_id`) | |
+| `kit.setClientReferenceId(id)` | Set a custom `client_reference_id` for the Stripe checkout session. Pass `null` to clear. Best used inside a `before_checkout` listener so custom logic runs right before the session is created |
+| `kit.getClientReferenceId()` | Get the current client reference ID, or `null` if not set |
 | **Events** | |
 | `kit.on(event, callback)` | Subscribe to lifecycle events (see Events section below) |
 | `kit.off(event, callback)` | Unsubscribe |
@@ -3339,7 +3342,7 @@ Configure checkout in `settings.checkout`:
       "free_trial": { "enabled": true, "days": 14 },  // Subscriptions only
       "payment_methods": ["card", "link"],
       "payment_description": "My Product",
-      "client_reference_id": "{{comp_email}}", // Template strings supported
+      "client_reference_id": "{{comp_email}}", // Template strings supported. Can also be set dynamically via kit.setClientReferenceId() which takes priority
 
       // Prefill from form fields
       "prefill_fields": {
@@ -3576,6 +3579,17 @@ kit.setPaymentItems([                    // Override Stripe line items (null = u
 ]);
 kit.getPaymentItems();                   // Current override or null
 kit.startCheckout();                     // Show checkout page (fires before_checkout first)
+
+// ── Client reference ID (custom Stripe tracking) ──
+kit.setClientReferenceId('my-ref-123'); // Set before checkout — overrides schema template
+kit.getClientReferenceId();              // Current value or null
+
+// Set dynamically with custom logic in before_checkout:
+kit.on('before_checkout', (e) => {
+  const email = kit.getField('email');
+  const plan = kit.getField('plan');
+  kit.setClientReferenceId(`${email}::${plan}::${Date.now()}`);
+});
 ```
 
 ---
