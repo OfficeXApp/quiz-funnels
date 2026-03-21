@@ -3508,6 +3508,7 @@ Customize the floating cart button, slide-out drawer, and checkout flow. All HTM
       "checkout_button_text": "Complete Order", // Override "Proceed to Checkout" text
       "destination_url": "https://pay.example.com?email={{email}}", // External URL (skips built-in checkout)
       "destination_page": "checkout",          // Internal page ID (navigates within funnel instead of Stripe overlay)
+      "checkout_url": "https://pay.example.com/checkout", // Alternative external checkout URL (supports {{field_id}} templates)
       "position": "bottom-left",               // "bottom-right" (default) | "bottom-left" | "top-right" | "top-left"
       "hide_button": false,                    // Hide floating button (use kit.openCart() to open programmatically)
 
@@ -3823,7 +3824,22 @@ Use `stripe_overrides` to control Stripe behavior. These apply to both the `/che
 }
 ```
 
-**Available overrides:** `mode_override` (force Checkout Session mode — only applies to `/checkout/session`), `payment_intent_data` (capture_method, setup_future_usage, statement_descriptor, transfer_data), `subscription_data` (description, metadata), `consent_collection` (terms_of_service, promotions), `payment_method_options.card` (capture_method, request_three_d_secure).
+**Available overrides:**
+
+| Field | Type | Description |
+|---|---|---|
+| `mode_override` | `"payment" \| "subscription" \| "setup"` | Force Checkout Session mode (e.g. `"payment"` for guarded trials). Only applies to `/checkout/session`. |
+| `payment_intent_data.capture_method` | `"automatic" \| "manual"` | `"manual"` = authorize-only (hold funds, capture later) |
+| `payment_intent_data.setup_future_usage` | `"off_session" \| "on_session"` | Save card for future charges |
+| `payment_intent_data.statement_descriptor` | `string` | Bank statement text (max 22 chars) |
+| `payment_intent_data.statement_descriptor_suffix` | `string` | Appended to default statement descriptor |
+| `payment_intent_data.transfer_data` | `{ destination, amount? }` | Stripe Connect transfers |
+| `subscription_data.description` | `string` | Merged into subscription_data |
+| `subscription_data.metadata` | `Record<string, string>` | Extra metadata on the subscription |
+| `consent_collection.terms_of_service` | `"required" \| "none"` | Require ToS acceptance at checkout |
+| `consent_collection.promotions` | `"auto" \| "none"` | Stripe promotions consent |
+| `payment_method_options.card.capture_method` | `"automatic" \| "manual"` | Per-method capture (e.g. card-only holds) |
+| `payment_method_options.card.request_three_d_secure` | `"any" \| "automatic"` | Force 3DS per payment method (`"any"` = always challenge) |
 
 When `mode_override: "payment"` is set for subscription items in Checkout Session mode, Catalog Kit automatically strips recurring pricing from inline items. Use `amount_cents` instead of `stripe_price_id` for recurring prices in payment mode.
 
