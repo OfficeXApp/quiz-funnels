@@ -608,7 +608,7 @@ GET https://api.catalogkit.cc/api/v1/analytics/catalogs/:id/timeseries
 {
   "ok": true,
   "data": [
-    { "date": "2024-01-01", "page_views": 150, "sessions": 80, "form_submits": 25, "checkout_completes": 5, "revenue_cents": 4900 }
+    { "date": "2024-01-01", "page_views": 150, "sessions": 80, "form_submits": 25, "checkout_errors": 2, "checkout_completes": 5, "revenue_cents": 4900 }
   ]
 }
 ```
@@ -1104,7 +1104,7 @@ The download opens in a new tab to prevent losing form progress on mobile.
 
 If your catalog has a `webhook_url` configured on the catalog, Catalog Kit forwards visitor events there using a durable queue with retries. Delivery is **at least once**:
 
-- **Critical events** such as `form_submit`, `funnel_complete`, `checkout_complete`, and `lead_captured` are delivered individually as soon as possible
+- **Critical events** such as `form_submit`, `funnel_complete`, `checkout_error`, `checkout_complete`, and `lead_captured` are delivered individually as soon as possible
 - **Non-critical analytics events** such as `page_view`, `field_change`, and other high-volume interaction events may be grouped into a batched payload to protect your endpoint from bursts
 - Every event includes an `event_id` (ULID) for deduplication, and tracked events include `schema_ref` with human-readable page/component context
 
@@ -4438,7 +4438,7 @@ Customize the floating cart button, slide-out drawer, and checkout flow. All HTM
 
 ### Cart events (analytics + JS)
 
-The following events are tracked automatically: `cart_add`, `cart_remove`, `checkout_start`, `payment_info_added`, `checkout_complete`, `checkout_skip`.
+The following events are tracked automatically: `cart_add`, `cart_remove`, `checkout_start`, `checkout_error`, `payment_info_added`, `checkout_complete`, `checkout_skip`.
 
 **JavaScript events** via `window.CatalogKit`:
 
@@ -5027,7 +5027,7 @@ Visitor events are tracked automatically by the catalog frontend using first-par
 POST https://api.catalogkit.cc/events
 ```
 
-**Valid event types:** `page_view`, `field_change`, `field_complete`, `form_submit`, `funnel_complete`, `action_click`, `exit_intent`, `session_start`, `session_resume`, `cart_add`, `cart_remove`, `checkout_start`, `checkout_skip`, `checkout_complete`, `payment_info_added`, `offer_declined`, `lead_captured`, `video_play`, `video_pause`, `video_progress`, `video_complete`, `video_chapter`, `video_seek`, `page_auto_skipped`, `popup_shown`, `popup_dismissed`, `popup_converted`
+**Valid event types:** `page_view`, `field_change`, `field_complete`, `form_submit`, `funnel_complete`, `action_click`, `exit_intent`, `session_start`, `session_resume`, `cart_add`, `cart_remove`, `checkout_start`, `checkout_error`, `checkout_skip`, `checkout_complete`, `payment_info_added`, `offer_declined`, `lead_captured`, `video_play`, `video_pause`, `video_progress`, `video_complete`, `video_chapter`, `video_seek`, `page_auto_skipped`, `popup_shown`, `popup_dismissed`, `popup_converted`
 
 > `funnel_complete` is a belt-and-suspenders completion event that fires alongside `form_submit` when the submitted state is confirmed. Both count toward submissions in analytics.
 
