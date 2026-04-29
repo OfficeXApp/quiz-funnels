@@ -1,5 +1,5 @@
 ---
-name: quiz-funnels
+name: catalog-kit
 description: |
   Build and manage marketing catalogs, landing pages, and multi-step funnels with your AI agent. Create catalogs from JSON schemas, publish them instantly, run A/B tests with weighted variants, and track visitor analytics — all through conversation.
   Use when: (1) Creating or updating a catalog/funnel/landing page, (2) Checking analytics like visitors, conversions, and drop-off rates, (3) Running A/B tests on different catalog versions, (4) AI-routing visitors to the right catalog variant with natural language hints, (5) Managing API keys for team access, (6) Uploading videos for catalogs, (7) Viewing individual visitor journeys, (8) Reviewing response distributions for form fields, (9) Creating sandboxes to safely edit catalogs without affecting production, (10) Using the element inspector to get exact component references for AI agents, (11) Submitting form data headlessly via the Agent API for AI agent integrations, (12) Uploading and compressing images for fast loading, (13) Authoring catalogs as TypeScript files with full type safety, (14) Uploading and hosting downloadable files (PDFs, ZIPs, docs) with credit-based billing, (15) Building custom interactive UI with the CatalogKit global API bridge (window.CatalogKit) for inline scripts, real-time field access, and multi-form isolation, (16) AI agents can fill out catalog forms step-by-step via the stateful Agent Session API, (17) Configuring advanced Stripe checkout with 3D Secure verification and authorization holds for free trial funnels, (18) Previewing catalogs locally with hot reload before deploying to cloud, (19) Using local file references (images, videos, scripts) that auto-upload to CDN on push, (20) Adding cart and checkout to funnels with built-in cart UI (floating button, slide-out drawer, order summary) and Stripe payment integration, (21) Validating catalog schemas locally before pushing, (22) Scaffolding new catalogs from templates, (23) Diffing local vs remote catalog schemas, (24) Testing real Stripe checkout locally with your own test keys, (25) Monitoring local dev events (page views, field changes, checkout) via SSE stream for AI agent testing.
@@ -266,6 +266,180 @@ All fields are optional — only include the ones you want to change.
 ```
 
 > Changing the subdomain updates all catalog and redirect URLs automatically.
+
+---
+
+## Custom Domains
+
+Serve your catalogs from your own domain (e.g. `shop.example.com`) instead of `<subdomain>.catalogkit.cc`. SSL certificates are provisioned automatically — just add DNS records and the system handles the rest.
+
+### How it works
+
+1. You call `POST /api/v1/domains` with your domain
+2. The API provisions an SSL certificate (ACM) and returns 3 DNS records to add
+3. You add the DNS records at your provider
+4. You poll `POST /api/v1/domains/refresh` until status is `active`
+5. Your catalogs are live at `https://your-domain.com/slug`
+
+The system uses a consolidated SAN certificate on CloudFront — one distribution serves all custom domains. No per-domain infrastructure needed. SSL certs are free (AWS ACM).
+
+### Step 1 — Provision your domain
+
+```bash
+curl -X POST https://api.catalogkit.cc/api/v1/domains \
+  -H "Authorization: Bearer YOUR_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{ "domain": "shop.example.com" }'
+```
+
+**Response (201):**
+```json
+{
+  "ok": true,
+  "data": {
+    "domain": "shop.example.com",
+    "status": "pending_validation",
+    "cloudfront_attached": false,
+    "validation_cname_name": "_abc123.shop.example.com.",
+    "validation_cname_value": "_def456.acm-validations.aws.",
+    "error": null,
+    "dns_records": [
+      {
+        "type": "CNAME",
+        "name": "shop.example.com",
+        "value": "catalogkit.cc",
+        "purpose": "Route traffic to Catalog Kit"
+      },
+      {
+        "type": "TXT",
+        "name": "_cf-verify.shop.example.com",
+        "value": "cf-domain-verify=usr_abc123",
+        "purpose": "Verify domain ownership"
+      },
+      {
+        "type": "CNAME",
+        "name": "_abc123.shop.example.com.",
+        "value": "_def456.acm-validations.aws.",
+        "purpose": "SSL certificate validation (ACM)"
+      }
+    ],
+    "created_at": "2025-01-15T10:30:00.000Z",
+    "updated_at": "2025-01-15T10:30:00.000Z"
+  }
+}
+```
+
+### Step 2 — Add DNS records
+
+Add all 3 records from the `dns_records` array at your DNS provider:
+
+| # | Type | Name / Host | Value / Target | Purpose |
+|---|------|-------------|----------------|---------|
+| 1 | CNAME | `shop.example.com` | `catalogkit.cc` | Route traffic |
+| 2 | TXT | `_cf-verify.shop.example.com` | `cf-domain-verify=usr_abc123` | Ownership proof |
+| 3 | CNAME | `_abc123.shop.example.com.` | `_def456.acm-validations.aws.` | SSL cert validation |
+
+Record #3 is specific to your provisioning — the exact values come from the API response.
+
+### Step 3 — Poll until active
+
+After adding DNS records, call refresh to advance the provisioning:
+
+```bash
+curl -X POST https://api.catalogkit.cc/api/v1/domains/refresh \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+**Status progression:** `pending_validation` → `issued` → `active`
+
+- `pending_validation` — waiting for ACM to validate the SSL cert via DNS. Poll every 30s.
+- `issued` — SSL cert is ready, attaching to CloudFront. Poll once more.
+- `active` — done. Your domain is live with HTTPS.
+- `failed` — check `error` field. Usually a DNS misconfiguration.
+
+### Step 4 — Verify it works
+
+Once status is `active`, your catalogs are live:
+
+```
+https://shop.example.com/my-catalog-slug
+https://shop.example.com/my-catalog-slug/variant-slug
+https://shop.example.com/my-catalog-slug?hint="interested in premium plan"
+https://shop.example.com/dashboard
+```
+
+### Check domain status
+
+```bash
+GET https://api.catalogkit.cc/api/v1/domains/status
+```
+
+Returns the current provisioning state, DNS records, and any errors.
+
+### Remove a custom domain
+
+```bash
+curl -X DELETE https://api.catalogkit.cc/api/v1/domains \
+  -H "Authorization: Bearer YOUR_API_KEY"
+```
+
+This removes the domain from CloudFront, deletes the SSL certificate, and clears `custom_domain` from your account.
+
+### Using custom domains with the API
+
+Anywhere the API accepts `user_id`, you can use `domain` instead:
+
+```bash
+# Fetch a catalog by custom domain
+GET https://api.catalogkit.cc/public/catalogs/by-domain/my-catalog?domain=shop.example.com
+
+# Route a visitor to the best variant (GET)
+GET https://api.catalogkit.cc/public/route-variant?domain=shop.example.com&slug=my-catalog&hint="enterprise buyer"
+
+# Route a visitor to the best variant (POST)
+curl -X POST https://api.catalogkit.cc/public/route-variant \
+  -H "Content-Type: application/json" \
+  -d '{
+    "domain": "shop.example.com",
+    "slug": "my-catalog",
+    "hint": "enterprise buyer"
+  }'
+```
+
+### AI agent workflow
+
+For AI agents connecting a custom domain programmatically:
+
+```
+1. POST /api/v1/domains { "domain": "shop.example.com" }
+2. Parse dns_records from response
+3. Add all 3 DNS records via your DNS provider's API
+4. Loop: POST /api/v1/domains/refresh every 30s
+5. When status === "active" → done
+6. If status === "failed" → read error, fix DNS, POST /api/v1/domains to retry
+```
+
+### Cloudflare users
+
+If your DNS is managed by Cloudflare, set **all CNAME records** to **"DNS only"** (gray cloud icon, not orange). Cloudflare's orange-cloud proxy terminates SSL and interferes with both ACM validation and CloudFront certificate serving.
+
+### Troubleshooting
+
+| Problem | Cause | Fix |
+|---------|-------|-----|
+| Stuck on `pending_validation` | ACM validation CNAME not added or not propagated | Verify record #3 with `dig CNAME _abc123.shop.example.com +short` |
+| `No account found for domain` | Traffic CNAME works but domain not set on account | Check that POST /domains succeeded |
+| `failed` status | DNS misconfigured or Cloudflare proxy enabled | Check `error` field, fix DNS, call `POST /domains` to retry |
+| `ERR_NAME_NOT_RESOLVED` | Traffic CNAME not added | Add record #1 (`shop.example.com → catalogkit.cc`) |
+| SSL error after `active` | CloudFront propagation delay | Wait 5-10 minutes for CloudFront to deploy |
+
+### Limitations
+
+- One custom domain per account
+- ACM supports up to 100 SANs per consolidated certificate — sufficient for ~95 custom domains per CloudFront distribution
+- Apex domains (e.g. `example.com` without subdomain prefix) require CNAME flattening or ALIAS records — supported by Cloudflare, Route53, DNSimple; not supported by traditional DNS
+- SSL provisioning typically takes 2-10 minutes after DNS records are added
+- Custom domain resolution adds one DynamoDB lookup per uncached request (cached in-memory for 60s)
 
 ---
 
@@ -928,9 +1102,45 @@ The download opens in a new tab to prevent losing form progress on mobile.
 
 ## Webhooks
 
-If your catalog has a `webhook_url` configured in its schema, all visitor events are forwarded there in real time. Each webhook payload includes an `event_id` (ULID) for deduplication and `schema_ref` with human-readable page/component context.
+If your catalog has a `webhook_url` configured on the catalog, Catalog Kit forwards visitor events there using a durable queue with retries. Delivery is **at least once**:
 
-> **Important:** `webhook_url` is for **passive event forwarding only** — it fires asynchronously after events occur and does NOT block page navigation. If you need to validate form data against your server before allowing the user to proceed (e.g., check if an email is already registered, verify a wallet address, or run custom eligibility logic), you must use a **CatalogKit `beforenext` script** instead. See [Server-Side Form Validation](#server-side-form-validation-common-pattern) below.
+- **Critical events** such as `form_submit`, `funnel_complete`, `checkout_complete`, and `lead_captured` are delivered individually as soon as possible
+- **Non-critical analytics events** such as `page_view`, `field_change`, and other high-volume interaction events may be grouped into a batched payload to protect your endpoint from bursts
+- Every event includes an `event_id` (ULID) for deduplication, and tracked events include `schema_ref` with human-readable page/component context
+
+Single-event deliveries look like:
+
+```json
+{
+  "delivery_type": "event",
+  "event_id": "01HV...",
+  "event": "form_submit",
+  "catalog_slug": "ai-agency-bundle",
+  "user_id": "usr_abc123",
+  "page_id": "thank_you",
+  "form_state": { "email": "user@example.com", "plan": "pro" },
+  "timestamp": "2026-03-13T10:30:00.000Z"
+}
+```
+
+High-volume batched deliveries look like:
+
+```json
+{
+  "delivery_type": "events.batch",
+  "catalog_slug": "ai-agency-bundle",
+  "user_id": "usr_abc123",
+  "event_count": 3,
+  "batched_at": "2026-03-13T10:30:05.000Z",
+  "events": [
+    { "delivery_type": "event", "event_id": "01HV...", "event": "page_view", "page_id": "intro", "timestamp": "2026-03-13T10:30:00.000Z" },
+    { "delivery_type": "event", "event_id": "01HW...", "event": "field_change", "component_id": "email", "timestamp": "2026-03-13T10:30:01.000Z" },
+    { "delivery_type": "event", "event_id": "01HX...", "event": "field_complete", "component_id": "email", "timestamp": "2026-03-13T10:30:02.000Z" }
+  ]
+}
+```
+
+> **Important:** `webhook_url` is for **passive event forwarding only** — deliveries happen asynchronously after events occur and do NOT block page navigation. Your endpoint must treat deliveries as **at least once** and deduplicate by `event_id`. If you need to validate form data against your server before allowing the user to proceed (e.g., check if an email is already registered, verify a wallet address, or run custom eligibility logic), you must use a **CatalogKit `beforenext` script** instead. See [Server-Side Form Validation](#server-side-form-validation-common-pattern) below.
 
 ---
 
@@ -1004,6 +1214,41 @@ Set theme options under `settings.theme`:
 - `background_image` — URL for cover page background
 - `background_color` — hex color for page background
 - `background_overlay` — `"dark"`, `"light"`, `"none"`, or a number 0–1
+
+### SEO & Social Previews
+
+Each catalog can define its own SEO metadata for browser tab title, favicon, meta description, and Open Graph image. Set these on the top-level `seo` field of your catalog schema:
+
+```typescript
+const catalog: CatalogSchema = {
+  slug: "spring-sale",
+  seo: {
+    title: "Spring Sale 2025 — Get 40% Off",
+    description: "Find your perfect plan in under 60 seconds. Limited time offer.",
+    favicon: "https://cdn.example.com/favicon.png",
+    og_image: "https://cdn.example.com/og-spring-sale.jpg",
+  },
+  settings: { /* ... */ },
+  pages: { /* ... */ },
+  routing: { /* ... */ },
+};
+```
+
+| Field | Type | Description |
+|---|---|---|
+| `seo.title` | `string` | Browser tab title. Falls back to the first page's `title`, then the catalog `slug` |
+| `seo.description` | `string` | Meta description for search engines and link previews (Slack, Twitter, Facebook, etc.) |
+| `seo.favicon` | `string` | URL to a favicon image (ICO, PNG, or SVG). Replaces the default browser favicon |
+| `seo.og_image` | `string` | Open Graph image URL for social media link previews. Recommended size: 1200×630px |
+
+All fields are optional. When omitted:
+- **Title** falls back to the first page's title, then the catalog slug
+- **Favicon** uses the browser default
+- **Description & OG image** are simply not set
+
+**How it works:**
+- **For browsers:** Title, favicon, description, and OG tags are injected dynamically via `document.title` and `<meta>` / `<link>` elements when the catalog loads
+- **For social media crawlers** (Facebook, Twitter, Slack, LinkedIn, WhatsApp, Telegram, Discord, Google, Bing): CloudFront detects bot user-agents and redirects them to a server-side HTML endpoint (`/meta/:slug`) that returns a lightweight page with all the correct `<meta>` tags — no JavaScript required
 
 ### Component Types (61 total)
 
@@ -1153,6 +1398,50 @@ Individual options in `multiple_choice`, `checkboxes`, `dropdown`, and `picture_
   ]
 }
 ```
+
+### Option Messages
+
+Individual options in `multiple_choice` and `checkboxes` can carry a custom `message` that appears when selected. Use this for contextual tips, personalized guidance, or informational callouts — independent of quiz scoring.
+
+```json
+{
+  "id": "team_size",
+  "type": "multiple_choice",
+  "props": {
+    "label": "What's your team size?",
+    "options": [
+      { "value": "solo", "heading": "Just me", "message": "Great! Our solo plan is perfect for individual creators." },
+      { "value": "small", "heading": "2-10 people", "message": "Nice! You'll love our team collaboration features." },
+      { "value": "large", "heading": "10+ people", "message": "We recommend scheduling a demo for enterprise needs." }
+    ]
+  }
+}
+```
+
+Messages appear as blue info callouts below the selected option. By default, messages show **immediately on click** (`option_message_trigger: "on_select"`). Set `option_message_trigger: "on_next"` to reveal messages only after the visitor clicks Continue (same two-step flow as quiz `reveal_on_select`):
+
+```json
+{
+  "id": "goal",
+  "type": "checkboxes",
+  "props": {
+    "label": "What are your goals?",
+    "option_message_trigger": "on_next",
+    "options": [
+      { "value": "leads", "heading": "Generate leads", "message": "We'll set you up with our lead capture templates." },
+      { "value": "sales", "heading": "Increase sales", "message": "Check out our checkout optimization guide after signup." },
+      { "value": "brand", "heading": "Build brand awareness", "message": "Our content calendar tool is included free." }
+    ]
+  }
+}
+```
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `message` | string | — | Per-option message shown when selected (on `Option`) |
+| `option_message_trigger` | `"on_select"` \| `"on_next"` | `"on_select"` | When to show option messages (on `ChoiceProps`) |
+
+> **Note:** Option messages are separate from quiz `option_messages`. Quiz `option_messages` are keyed by value in the quiz config and only show for wrong answers. The `message` field on an option always shows when selected, regardless of quiz mode.
 
 ### Picture Choice Component
 
@@ -1333,6 +1622,27 @@ Page action buttons (and the default submit/continue button) support `side_state
 | `submit_side_statement` | string | Same as `side_statement` but for the default submit button (page-level) |
 | `submit_reassurance` | string | Same as `reassurance` but for the default submit button (page-level) |
 | `button_disabled_message` | string | Error message shown when clicking a disabled button (default: "Please fill in all required fields"). Used with `require_all_fields` or script-disabled buttons |
+
+### Hiding the Submit Button
+
+The submit/continue button is **automatically hidden** on the last page when there are no input components and no explicit `submit_label`. For other cases:
+
+| Method | How |
+|---|---|
+| **Auto-hide (last page, no inputs)** | Just don't add input components to the page — button disappears automatically |
+| **Force-hide on any page** | Set `"hide_navigation": true` on the page object |
+| **Hide only the back button** | Set `"hide_back": true` on the page object |
+| **Replace with custom buttons** | Use `"actions"` array on the page — replaces the default button entirely |
+
+```json
+{
+  "title": "Thank You!",
+  "hide_navigation": true,
+  "components": [
+    { "id": "thanks", "type": "text", "props": { "content": "We'll be in touch soon." } }
+  ]
+}
+```
 
 ### Embedded Buttons
 
@@ -2239,6 +2549,7 @@ Each item in the `inputs` array has these fields:
 | `ribbon_bg` | string | Ribbon background color (defaults to theme color) |
 | `ribbon_color` | string | Ribbon text color (defaults to white) |
 | `button` | EmbeddedButton | Side link button (see [Embedded Buttons](#embedded-buttons)) |
+| `message` | string | Custom message shown below the option when selected (see [Option Messages](#option-messages)) |
 | `inputs` | array | Nested sub-components — always visible by default, auto-checks when required inputs filled |
 | `expand_on_select` | boolean | When `true`, nested inputs only show after checkbox is checked (no auto-check). Default: `false` |
 
@@ -2303,29 +2614,29 @@ Control the animation style and scroll behavior when navigating between pages:
 
 **Scroll:** `instant` (default — jump to top) or `smooth` (animated scroll to top).
 
-### Completion Screen
+### End-of-Funnel Behavior
 
-Customize what visitors see after submitting:
+There is **no built-in completion screen**. The editor is responsible for designing the end state. After the last submit, the visitor stays on the current page (the button disables to prevent double-submit). Common patterns:
+
+1. **Design a "Thank You" page** — add a final page with display-only components (text, images, links). Since it has no input fields, the submit button is automatically hidden and the page acts as the natural end.
+2. **Redirect after submit** — use `settings.completion.redirect_url` to send visitors to an external URL after the form fires:
 
 ```json
 {
   "settings": {
     "completion": {
-      "heading": "You're all set!",
-      "message": "We'll be in touch within 24 hours.",
-      "redirect_url": "https://example.com",
-      "redirect_delay": 3000,
-      "actions": [
-        { "type": "fill_again", "label": "Submit Again", "style": "secondary" },
-        { "type": "share", "label": "Share", "style": "ghost" },
-        { "type": "redirect", "label": "Visit Site", "url": "https://example.com", "style": "primary" }
-      ]
+      "redirect_url": "https://example.com/thank-you?email={{email}}",
+      "redirect_delay": 0
     }
   }
 }
 ```
 
-**Action types:** `fill_again` (reset form), `share` (copy URL), `redirect` (navigate to URL). All fields are optional — omit `completion` entirely for a minimal checkmark screen.
+3. **Use page actions** — add custom `actions` on the last page for buttons like "Visit Site", "Share", etc.
+
+**Auto-hide rule:** On the last page (no outgoing routes), the submit button is **automatically hidden** when the page has no input components and no explicit `submit_label`. To force a button on a display-only end page, set `submit_label` explicitly.
+
+> **Important:** `form_submit` and `funnel_complete` events still fire normally when the submit button is clicked. Design your end page accordingly — if you need to collect data, put inputs on the page and the submit button appears automatically.
 
 ### Dynamic Behavior (CatalogKit API)
 
@@ -2405,8 +2716,7 @@ window.CatalogKit.getField('email');           // .getField() does not exist on 
 | `handle.add(item)` | Add a `CartItem` to this cart (dedupes by `offer_id`). Needs at minimum `offer_id`, `page_id`, `title` |
 | `handle.remove(offerId)` | Remove an item by `offer_id` |
 | `handle.items()` | Get a frozen array of items in this cart |
-| `handle.updateItem(offerId, updates)` | Merge new display properties into an existing cart item by `offer_id`. Use to override `title`, `price_display`, `price_subtext`, `image`, `button` for CRO copywriting. The `offer_id` cannot be changed |
-| `handle.setPaymentItems(items)` | Override Stripe line items for this cart. Pass `null` to fall back to display items |
+| `handle.setPaymentItems(items)` | Override Stripe line items for this cart. Pass `null` to fall back to display items. **If using `mode_override: "payment"`, items must include `amount_cents`** |
 | `handle.paymentItems()` | Get the Stripe override array, or `null` |
 | `handle.clear()` | Clear all items and payment overrides for this cart |
 | `handle.moveTo(targetName, offerId?)` | Move one item (by `offer_id`) or all items to another named cart |
@@ -2444,6 +2754,7 @@ Events follow the pattern `event` or `event:scope_id`. Unscoped listeners fire f
 | `cart_open` | — | `{ items }` | No | Cart drawer opened |
 | `cart_close` | — | `{ items }` | No | Cart drawer closed |
 | `before_checkout` | — | `{ items, cartName, preventDefault() }` | Yes | Before checkout — can block or redirect. `cartName` is the cart being checked out |
+| `checkout_error` | — | `{ error_message, error_code }` | No | Checkout payment failed (3DS, card declined, network error, fund hold rejection). `error_code` is the Stripe error code when available (e.g. `"card_declined"`, `"authentication_required"`) |
 
 **Scoping examples:**
 
@@ -2735,6 +3046,9 @@ When checkboxes have nested inputs (e.g. proof URLs, wallet addresses), you **mu
 | Stripe checkout shows "not configured" error | Missing Stripe keys in `.env` | Create a `.env` file in your catalog project directory with `STRIPE_SECRET_KEY=sk_test_...` and `STRIPE_PUBLISHABLE_KEY=pk_test_...`. The dev server checks the catalog directory, not your home directory |
 | "Stripe key mode mismatch" error on checkout | `stripe_publishable_key` in checkout settings is `pk_test_*` but the server's secret key is `sk_live_*` (or vice versa) | **For production:** set `stripe_publishable_key` to your live publishable key (`pk_live_*`). **For development:** use test keys in `.env` (`sk_test_*` + `pk_test_*`). Both keys must be from the same Stripe account and same mode (test or live). The CLI warns on `catalog push` if a test key is detected |
 | Page redirects to start on reload during local dev | Session persistence restoring a stale session from localStorage | Click "Clear Cache" in the dev toolbar, or append `?dev_force_page=page_id` to the URL to jump directly to any page and bypass the resume modal |
+| Changes to `.ts` catalog file not reflected after save | Outdated CLI version where `tsImport` ESM module cache prevented reloading | Run `npm install -g @officexapp/catalogs-cli@latest` to update. Fixed in v0.7.5+ via cache-busting |
+| Changes to imported modules (e.g. `./products.ts`) not detected | Outdated CLI only watched the root catalog file | Update CLI. v0.7.5+ watches the entire catalog directory recursively for `.ts`/`.js`/`.json` changes |
+| Asset changes (images, CSS) not showing in browser | Outdated CLI did not trigger browser refresh for asset file changes | Update CLI. v0.7.5+ sends a reload signal for asset changes. Also try hard-refresh (`Cmd+Shift+R`) to bypass browser cache |
 
 ### Debug mode & dev URL params
 
@@ -2775,9 +3089,15 @@ import { CatalogSchema } from "@officexapp/catalog-types";
 const catalog: CatalogSchema = {
   name: "Spring Sale Landing Page",
   slug: "spring-sale",
+  seo: {
+    title: "Spring Sale 2025 — 40% Off Everything",
+    description: "Grab your favorite items at 40% off. Limited time only.",
+    favicon: "https://cdn.example.com/favicon.png",
+    og_image: "https://cdn.example.com/og-spring-sale.jpg",
+  },
   settings: {
     theme: { primary_color: "#4F46E5", font: "Inter", mode: "light" },
-    completion: { message: "Thanks for signing up!" },
+    completion: { redirect_url: "https://example.com/thank-you" },
   },
   pages: {
     landing: {
@@ -2906,7 +3226,7 @@ No token required — `dev` mode is purely local. Edit your catalog file and sav
 **Dev server features:**
 - **Production-quality rendering** — uses the same fonts (Outfit + DM Sans), CSS classes (`.cf-*`), and component styling as the live site
 - **Shared engine** — conditions, routing, and validation use the exact same code as production (inlined at build time from `shared/engine/`), eliminating dev/prod divergence
-- **Auto-reload** — browser refreshes automatically when you save your catalog file (SSE-based, no manual refresh needed)
+- **Auto-reload** — browser refreshes automatically when you save your catalog file or any `.ts`/`.js`/`.json` file in the catalog directory (SSE-based, no manual refresh needed). Imported modules are also watched — if your catalog imports `./products.ts` or `./pages/intro.ts`, changes to those files trigger a full re-parse and reload. Asset file changes (images, CSS, etc.) also trigger a browser refresh. TypeScript modules are cache-busted on every reload to guarantee fresh content
 - **Cover page layouts** — dark gradient overlay with floating content animation, matching production exactly
 - **Interactive form state** — inputs maintain state, conditional routing works based on form values
 - **Form validation** — `validatePage()` runs before advancing: required fields, email/URL/number format, min/max constraints. Red border + error message on invalid fields, auto-scroll to first error
@@ -2914,7 +3234,7 @@ No token required — `dev` mode is purely local. Edit your catalog file and sav
 - **Prefill & default values** — `default_value` on components initializes formState on mount. URL param prefill via `settings.url_params.prefill_mappings`. `prefill_mode: "hidden"` hides prefilled fields; `prefill_mode: "readonly"` renders them as display-only text
 - **Auto-skip pages** — pages with `auto_skip: true` are skipped (via `replaceState`) when all visible required inputs already have values
 - **Browser history** — pushState/popstate integration: browser back button returns to previous page, auto-skip uses replaceState to stay invisible in history
-- **Session persistence** — formState, currentPageId, and history are saved to localStorage (keyed by catalog slug). On return, a "Resume" / "Start Over" prompt appears if the user left mid-funnel. Cleared on submission. Use the "Clear Cache" button in the dev toolbar to reset, or append `?dev_force_page=page_id` to bypass the resume modal entirely
+- **Session persistence** — formState, currentPageId, history, and **URL params** are saved to localStorage (keyed by catalog slug). On return, a "Resume" / "Start Over" prompt appears if the user left mid-funnel. Session **survives Stripe checkout redirects** — all form data and original URL params (e.g. `?ref=abc123`, UTM tags) are automatically restored after payment so `kit.getField()` and `kit.getUrlParam()` work on success/post-checkout pages (including multi-checkout upsell flows). Cleared only on final form submission or user-initiated "Start Over". Use the "Clear Cache" button in the dev toolbar to reset, or append `?dev_force_page=page_id` to bypass the resume modal entirely
 - **Cart & offers** — full cart UI (floating button + slide-out drawer) that collects page offers via `accept_field`/`accept_value`. Cart persists across pages, items can be removed
 - **Cart settings** — `settings.cart`: `position` (4 corners), `hide_button`, `title`, `checkout_button_text`, `destination_url` (external redirect), `destination_page` (internal page navigation)
 - **Sticky bottom bar** — `settings.sticky_bar` or `page.sticky_bar`: delay, scroll direction show/hide, template interpolation (`{{fieldId}}`), style variants (solid, glass, glass_dark, gradient), primary action dispatch, secondary actions, `field:<id>:<value>` dispatch
@@ -2950,7 +3270,7 @@ The local dev server exposes these endpoints at `http://localhost:3456` (or cust
 | `/events/batch` or `/e/batch` | POST | Track up to 25 events in a batch (JSON body: `{ "events": [...] }`). Same endpoint the production frontend uses |
 | `/public/catalogs/:userId/:slug` | GET | Fetch the loaded catalog as JSON — same response shape as production. Use `dev-user` as `:userId`. Optional `/:variantSlug` suffix for variant resolution |
 | `/routing/variant` | GET/POST | Deterministic variant routing. GET: `?slug=X&hint=Z`. POST: `{ "slug": "X", "hint": "Z" }`. Uses keyword matching instead of AI (Gemini) — returns `variant_slug`, `target_slug`, `reason` |
-| `/__dev_sse` | GET | SSE stream for auto-reload — sends `data: reload\n\n` when catalog file changes |
+| `/__dev_sse` | GET | SSE stream for auto-reload — sends `data: reload\n\n` when any file in the catalog directory changes (`.ts`/`.js`/`.json` trigger full re-parse, assets trigger refresh) |
 | `/__dev_events_stream` | GET | SSE stream for dev events — broadcasts page views, field changes, checkout events as JSON |
 | `/__dev_events` | GET | Recent dev events as JSON array. Query param: `?limit=50` (default 50) |
 | `/__dev_event` | POST | Submit a custom dev event (JSON body: `{ type, data, ts }`) |
@@ -3262,19 +3582,35 @@ Mark form fields as AI-prefillable to let the hint auto-answer them. Combined wi
 
 **Works without variants too.** A catalog with zero variants but AI-prefillable fields will still process the hint and prefill qualifying questions — no variant setup required.
 
-**Loading tips:** Add `loading_tips` to your catalog settings to show rotating tips/messages during the AI loading screen:
+**Loading message:** Customize the loading screen message with `loading_message` in your catalog settings. The default is `"Loading Your Catalog..."`:
 
 ```json
 {
   "settings": {
+    "loading_message": "Preparing your personalized plan..."
+  }
+}
+```
+
+**Loading tips:** Add `loading_tips` to show rotating tips/messages below the loading message during the AI loading screen:
+
+```json
+{
+  "settings": {
+    "loading_message": "Finding the best options for you...",
     "loading_tips": [
-      "We're personalizing your experience...",
-      "Finding the best options for you",
+      "Analyzing your preferences",
+      "Matching you with the right plan",
       "Almost ready!"
     ]
   }
 }
 ```
+
+| Property | Type | Default | Description |
+|---|---|---|---|
+| `loading_message` | string | `"Loading Your Catalog..."` | Primary loading screen message |
+| `loading_tips` | string[] | — | Rotating tips shown below the loading message |
 
 ---
 
@@ -3493,7 +3829,8 @@ const kit = window.CatalogKit.get();
 // Page offers auto-add to the default cart. You can also add programmatically:
 kit.cart().add({
   offer_id: "plan-1", page_id: "pricing",
-  title: "Pro Plan", price_display: "$29/mo",
+  title: "Pro Plan", subtitle: "Unlimited access for your team",
+  price_display: "$29/mo",
   amount_cents: 2900, payment_type: "subscription", interval: "month",
 });
 
@@ -3511,13 +3848,6 @@ kit.cart("upsell").items();   // → upsell cart items
 // Move items between carts
 kit.cart().moveTo("upsell", "plan-1");   // move one item by offer_id
 kit.cart("upsell").moveTo("default");    // move all items back
-
-// Update display text on existing items (CRO copywriting)
-kit.cart().updateItem("plan-1", {
-  title: "Pro Plan — Best Value",
-  price_display: "$29/mo (save 40%)",
-  price_subtext: "billed annually",
-});
 
 // Remove / clear
 kit.cart().remove("plan-1");
@@ -3554,6 +3884,8 @@ kit.cart().setPaymentItems(null);
 ```
 
 This works per-cart: `kit.cart("upsell").setPaymentItems([...])` overrides only the upsell cart.
+
+**⚠️ `mode_override: "payment"` constraint:** If your checkout uses `mode_override: "payment"` (e.g. guarded trials), every item in `setPaymentItems()` **must** include `amount_cents`. Items with only `stripe_price_id` will be stripped in payment mode, resulting in a $0 charge.
 
 ### Checkout as a page type
 
@@ -3694,6 +4026,10 @@ Configure checkout in `settings.checkout`:
 
       // Saved payment methods (for multi-checkout upsell chains)
       "reuse_payment_method": true,            // Find-or-create Stripe Customer by email, show saved cards on subsequent checkouts. Requires prefill_fields.customer_email
+      "customer_metadata": {                   // Optional — merged onto Stripe Customer with cck_ prefix on every checkout (create + reuse). Supports {{field_id}} templates
+        "ref": "{{ref_param}}",
+        "source": "my-catalog"
+      },
 
       // Skip
       "allow_skip": true,                      // Allow "Continue without paying" button (default: true, set false to require payment)
@@ -3727,6 +4063,18 @@ Configure checkout in `settings.checkout`:
       "show_disclaimer": true,
       "disclaimer_text": "By purchasing you agree to our Terms",
       "components": [],                        // Extra display components below order summary
+
+      // Error modal — customizable modal shown when checkout fails (e.g. 3DS, fund holds)
+      "error_modal": {
+        "enabled": true,
+        "headline": "Payment issue",
+        "message": "Your bank requires extra verification that couldn't be completed.\n\nThis sometimes happens with certain cards. You can try a different card or use our alternative checkout.",
+        "alt_action": {
+          "label": "Use alternative checkout",
+          "url": "https://pay.example.com/alt"
+        },
+        "dismiss_label": "Try a different card"
+      },
 
       // After payment
       "send_receipt": true,
@@ -3766,6 +4114,7 @@ Define an `offer` on any page. When the visitor's form field matches the `accept
   "offer": {
     "id": "growth-bundle",
     "title": "Growth Bundle",
+    "subtitle": "Everything you need to scale",  // Subheading below item title in cart/checkout
     "price_display": "$49/mo",
     "price_subtext": "/month",          // Gray subtitle below price in cart/checkout.
     // Auto-derives from interval when omitted (e.g. interval:"month" → "/month").
@@ -3785,25 +4134,116 @@ Define an `offer` on any page. When the visitor's form field matches the `accept
 
 **IMPORTANT:** Every offer that goes through Stripe checkout must have either `stripe_price_id` (a pre-configured Stripe Price) OR `amount_cents` (inline pricing). Without one of these, checkout will fail with a "Missing required param" error. Use `price_display` for the human-readable price shown in the UI.
 
-**`price_subtext`** — the gray subtitle text shown below the price in the cart and checkout order summary (e.g. "/month", "per year", "billed annually"). When omitted, it auto-derives from `interval` (e.g. `interval: "month"` → "/month"). Set to `""` to suppress it entirely.
+**⚠️ `mode_override: "payment"` constraint:** If your checkout settings use `mode_override: "payment"` (e.g. guarded trials), you **must** include `amount_cents` on every offer — `stripe_price_id` alone will be stripped, resulting in a $0 charge. This also applies to items passed via `setPaymentItems()`.
 
-**Free trial pricing example:** For trial offers, put the main price in `price_display` and the trial info in `price_subtext` so they render on separate lines:
+#### Offer display fields — visual layout
+
+Each cart/checkout item has **four display fields** arranged in two columns:
+
+```
+┌──────────────────────────────────────────────────┐
+│  [image]   title                  price_display   │
+│            subtitle               price_subtext   │
+└──────────────────────────────────────────────────┘
+```
+
+| Field | Position | Example | Notes |
+|---|---|---|---|
+| `title` | Left, bold | `"OfficeX Membership"` | Required |
+| `subtitle` | Left, smaller gray text below title | `"200+ Tools & Playbooks for Agents"` | Optional subheading for the item |
+| `price_display` | Right, bold green | `"7-Day Free Trial"`, `"$30/mo"`, `"Included"` | Visual price label |
+| `price_subtext` | Right, smaller gray text below price | `"then $30/month"`, `"/month"`, `"with membership"` | Auto-derives from `interval` when omitted. Set `""` to suppress |
+
+**Example — membership with trial + included add-on:**
+
+```jsonc
+// Page 1 offer
+"offer": {
+  "id": "membership",
+  "title": "OfficeX Membership",
+  "subtitle": "200+ Tools & Playbooks for Agents",
+  "price_display": "7-Day Free Trial",
+  "price_subtext": "then $30/month",
+  "amount_cents": 3000,
+  "payment_type": "subscription",
+  "interval": "month"
+}
+
+// Page 2 offer
+"offer": {
+  "id": "tiktok-farm",
+  "title": "TikTok Farm USA",
+  "subtitle": "Automated US-based posting",
+  "price_display": "Included",
+  "price_subtext": "with membership",
+  "amount_cents": 0
+}
+```
+
+**Common mistakes:**
+- Do NOT combine everything into `price_display` (e.g. `"7-Day Free Trial then $30/month"`) — this prevents the two-line layout and makes the subtext invisible
+- Do NOT put the item description in `title` — use `subtitle` for the secondary line
+- Do NOT confuse `subtitle` (below item title, left side) with `price_subtext` (below price, right side)
+
+Cart items accumulate across pages — each page can present a different offer (e.g., main product on page 1, upsell on page 2, order bump on page 3). All accepted offers become Stripe Checkout line items.
+
+### Multiple offers / order bumps on one page
+
+A page's `offer` field accepts a single `PageOffer`. To present **multiple order bumps on the same page**, use the native `offer` for the primary item and `kit.cart().add()` for additional bumps:
+
+1. **Primary offer** — use the page's `offer` field as normal (auto-adds to cart on accept).
+2. **Additional offers** — add an `html` component with a `<script>` that listens for acceptance and calls `kit.cart().add()`.
 
 ```jsonc
 {
+  "id": "pricing_page",
+  "title": "Choose Your Plan",
+  "components": [
+    {
+      "id": "main_choice",
+      "type": "multiple_choice",
+      "label": "Main plan",
+      "options": [
+        { "value": "accept", "heading": "Yes, sign me up!" },
+        { "value": "decline", "heading": "No thanks" }
+      ]
+    },
+    {
+      "id": "bump_choice",
+      "type": "multiple_choice",
+      "label": "Add priority support?",
+      "options": [
+        { "value": "accept", "heading": "Yes, add it — $9/mo" },
+        { "value": "decline", "heading": "No thanks" }
+      ]
+    },
+    {
+      "id": "bump_script",
+      "type": "html",
+      "props": {
+        "content": "<script>\nconst kit = window.CatalogKit.get();\nkit.on('fieldchange:bump_choice', () => {\n  const val = kit.getField('bump_choice');\n  if (val === 'accept') {\n    kit.cart().add({\n      offer_id: 'priority-support',\n      page_id: 'pricing_page',\n      title: 'Priority Support',\n      subtitle: 'Direct Slack channel with the team',\n      price_display: '$9/mo',\n      amount_cents: 900,\n      payment_type: 'subscription',\n      interval: 'month',\n    });\n  } else {\n    kit.cart().remove('priority-support');\n  }\n});\n</script>"
+      }
+    }
+  ],
   "offer": {
-    "price_display": "$30/month",
-    "price_subtext": "7-day free trial included",  // Renders as smaller gray text below the green price
-    "amount_cents": 3000,
+    "id": "pro-plan",
+    "title": "Pro Plan",
+    "price_display": "$29/mo",
+    "amount_cents": 2900,
     "payment_type": "subscription",
-    "interval": "month"
+    "interval": "month",
+    "accept_field": "main_choice",
+    "accept_value": "accept"
   }
 }
 ```
 
-Do NOT combine everything into `price_display` (e.g. `"7-Day Free Trial then $30/month"`) — this prevents the two-line layout and makes the subtext invisible.
-
-Cart items accumulate across pages — each page can present a different offer (e.g., main product on page 1, upsell on page 2, order bump on page 3). All accepted offers become Stripe Checkout line items.
+**Key points:**
+- The native `offer` handles the primary item with automatic cart add/remove via `accept_field`/`accept_value`
+- Additional bumps use `kit.cart().add()` and `kit.cart().remove()` in a `fieldchange` listener — same cart, same checkout
+- Each additional offer needs a unique `offer_id` (the cart deduplicates by `offer_id`)
+- Include `amount_cents` and `payment_type` on every cart item so Stripe checkout works correctly
+- You can add as many scripted bumps as needed — there is no limit
 
 ### Cart item buttons
 
@@ -3838,7 +4278,7 @@ The checkout page uses a two-column layout on desktop (single column on mobile).
 
 **Card column (Payment — sticky):**
 - Header text (configurable via `card_header_text`, default: "Complete Checkout")
-- Trial badge (when `free_trial` is set)
+- Message banner (configurable via `card_message`, e.g. "You won't be charged for 7 days")
 - Customer info fields (email, name, phone — from `prefill_fields`)
 - Card input fields (Stripe Elements — when `stripe_publishable_key` is set)
 - Pay button
@@ -3855,6 +4295,7 @@ The checkout page uses a two-column layout on desktop (single column on mobile).
 | `layout_desktop` | `"cart_left" \| "cart_right"` | `"cart_left"` | Column order on desktop (lg+). `"cart_right"` puts the order summary on the right and payment on the left. |
 | `layout_mobile` | `"cart_top" \| "cart_bottom"` | `"cart_top"` | Column order on mobile (<lg). `"cart_bottom"` puts the payment card on top and order summary below. |
 | `card_header_text` | `string` | `"Complete Checkout"` | Text displayed at the top of the payment card column. |
+| `card_message` | `string` | — | Colored message banner shown below `card_header_text` (e.g. "You won't be charged for 7 days", "Secure checkout", "Cancel anytime"). Only shown when set. |
 | `below_button` | `object` | — | Optional content rendered below the checkout button. Empty by default. |
 | `below_button.type` | `"text" \| "button"` | `"text"` | Render as plain text or a clickable link. |
 | `below_button.text` | `string` | — | The text content to display. |
@@ -3867,10 +4308,11 @@ The checkout page uses a two-column layout on desktop (single column on mobile).
 // Example: show payment card first on mobile
 { "checkout": { "layout_mobile": "cart_bottom" } }
 
-// Example: customize card header and add refund notice
+// Example: customize card header, message banner, and refund notice
 {
   "checkout": {
     "card_header_text": "Secure Payment",
+    "card_message": "You won't be charged for 7 days",
     "below_button": { "type": "text", "text": "90 day money-back guarantee" }
   }
 }
@@ -4026,7 +4468,6 @@ kit.on('before_checkout', (e) => {
 kit.cart().add({ offer_id: "plan-1", page_id: "pricing", title: "Pro Plan", amount_cents: 2900 });
 kit.cart().items();                      // Frozen array of default cart items
 kit.cart().remove("plan-1");             // Remove by offer_id
-kit.cart().updateItem("plan-1", { title: "New Title", price_display: "$19/mo" }); // Update display fields
 kit.cart("upsell").add({ ... });         // Add to a named cart
 kit.cart("upsell").items();              // Read named cart
 kit.cart().moveTo("upsell", "plan-1");   // Move item between carts
@@ -4201,10 +4642,32 @@ kit.on('before_checkout', (e) => {
 After Stripe redirects back to the catalog URL, the renderer automatically:
 
 1. Detects checkout success via URL params (`?checkout=success` or `?redirect_status=succeeded`)
-2. Navigates directly to `settings.checkout.success_page_id` (skipping the entry page)
-3. Fires a `checkout_complete` analytics event with Stripe metadata
-4. Strips Stripe query params from the URL (clean URL, no reload)
-5. Clears saved session (suppresses "resume where you left off?" modal)
+2. **Restores the full session** (formState, history, **original URL params**, **cart items**) from localStorage — all fields collected before checkout are available via `kit.getField()` on success/post-checkout pages
+3. Navigates directly to `settings.checkout.success_page_id` (skipping the entry page)
+4. Fires a `checkout_complete` analytics event with cart details (items, display prices, quantities), Stripe redirect params, and actual Stripe session amounts (fetched async from `/checkout/session/status`). The `value.amount_cents` field feeds into revenue rollups
+5. Strips Stripe query params from the URL (clean URL, no reload)
+6. Suppresses the "resume where you left off?" modal (session stays intact for post-purchase upsell pages)
+
+Session is preserved across multiple Stripe redirects (multi-checkout upsell chains). It is only cleared on final form submission or explicit "Start Over".
+
+### URL param persistence across Stripe redirect
+
+Stripe redirects drop all original URL query parameters (e.g. `?ref=abc123&utm_source=google`). The renderer automatically preserves them:
+
+- **Before checkout**, all URL params are saved to localStorage as part of the progressive session save.
+- **After Stripe redirect**, saved URL params are restored and merged with Stripe's redirect params. Original params like `?ref=abc123` are available again via `kit.getUrlParam("ref")` and `kit.getAllUrlParams()`.
+- **Merge priority**: Stripe's live redirect params (`checkout`, `session_id`, `redirect_status`) take precedence over saved values. Original params fill in everything else.
+
+This means attribution params (`ref`, `utm_source`, `utm_medium`, `utm_campaign`, etc.), prefill mappings, and any custom URL params survive the Stripe redirect without any extra configuration. Scripts on success/post-checkout pages can read them normally:
+
+```javascript
+const kit = window.CatalogKit.get();
+kit.on('pageenter:next_steps', () => {
+  const ref = kit.getUrlParam('ref');           // "abc123" — preserved from original visit
+  const allParams = kit.getAllUrlParams();       // { ref: "abc123", utm_source: "google", ... }
+  console.log('Referral:', ref);
+});
+```
 
 **If `success_page_id` is not set**, the visitor lands on page 1. Always configure it:
 
@@ -4254,16 +4717,18 @@ Events fired during the checkout flow (GA4-aligned naming for internal analytics
 |-------|--------------|-------------|
 | `checkout_start` | User enters checkout (success_page_id gate, cart checkout button, or `kit.startCheckout()`) | `item_count`, `cart_name` |
 | `payment_info_added` | Payment form becomes interactive (Payment Element "ready" or embedded checkout mounted) | `payment_mode` ("custom" / "embedded"), `item_count`, `value.amount_cents` |
-| `checkout_complete` | Stripe redirects back after successful payment, OR $0 cart proceeds without Stripe | `payment_intent`, `session_id`, `redirect_status`, `page_id`. For $0 carts: `{ item_count: 0, amount_cents: 0, zero_cart: true }` |
+| `checkout_complete` | Stripe redirects back after successful payment, OR $0 cart proceeds without Stripe | `value.amount_cents` (actual Stripe total or display cart total), `value.item_count`, `value.items[]` (offer_id, title, price_display, amount_cents), `value.display_amount_cents`, `value.stripe_amount_total`, `value.stripe_currency`, `value.stripe_payment_status`, `value.stripe_customer_email`, `value.stripe_line_items[]`, `value.session_id`, `value.payment_intent`. For $0 carts: `value.{ item_count: 0, amount_cents: 0, zero_cart: true }` |
+| `checkout_error` | Payment fails (Stripe error, 3DS failure, network issue, fund hold rejection) | `error_message`, `error_code` (Stripe error code when available) |
 | `checkout_skip` | User clicks "Continue without paying" | `item_count` |
 
 **Notes:**
-- `checkout_complete` increments the `checkout_completes` rollup counter used in dashboard analytics and revenue tracking
+- `checkout_complete` includes both **display cart values** (from the catalog schema) and **actual Stripe values** (fetched from the Stripe session after redirect). The `value.amount_cents` field is set to the Stripe actual total when available, falling back to the display cart total. This feeds into the `revenue_cents` rollup counter used in dashboard analytics
 - `checkout_complete` is deduplicated per session — refreshing the page after payment will not fire it again
 - `checkout_complete` also fires for $0 carts (empty cart at checkout time) with `zero_cart: true` so analytics pipelines can distinguish paid vs free completions
+- Cart data is persisted to localStorage before Stripe redirect, so item details survive the round-trip and appear in the event
 - `payment_info_added` fires when the Stripe payment form is interactive, not when the user types card details (Stripe doesn't expose keystroke events)
 - For hosted mode checkout (redirect to stripe.com), `payment_info_added` does not fire since the payment form is on Stripe's domain
-- All events are internal framework analytics only — they do NOT push to GA4/GTM automatically. Use `kit.on('pageenter:success_page')` or webhook forwarding for external pixel/tag integrations
+- All events are internal framework analytics only — they do NOT push to GA4/GTM automatically. Use `kit.on('pageenter:success_page')` or webhook forwarding (single-event + batched deliveries) for external pixel/tag integrations
 
 ---
 
@@ -4281,7 +4746,7 @@ The primary endpoint — creates a Stripe Checkout Session. Supports three `ui_m
 
 ### Session status verification (`GET /checkout/session/status`)
 
-After a successful Payment Element redirect, the frontend calls `GET /checkout/session/status?session_id=cs_...&user_id=...&catalog_slug=...` to verify the session completed. Returns `{ status, payment_status }`.
+After a successful Payment Element redirect, the frontend calls `GET /checkout/session/status?session_id=cs_...&user_id=...&catalog_slug=...` to verify the session completed. Returns `{ status, payment_status, amount_total, amount_subtotal, currency, customer_email, line_items[] }`. The `amount_total` and `line_items` are used by the `checkout_complete` analytics event to record actual Stripe revenue.
 
 ### Checkout intent strategy (`/checkout/intent`) — DEPRECATED
 
@@ -4368,6 +4833,61 @@ Use `stripe_overrides` to control Stripe behavior. These apply to `/checkout/ses
 | `payment_method_options.card.request_three_d_secure` | `"any" \| "automatic"` | Force 3DS per payment method (`"any"` = always challenge) |
 
 When `mode_override: "payment"` is set for subscription items in Checkout Session mode, Catalog Kit automatically strips recurring pricing from inline items. Use `amount_cents` instead of `stripe_price_id` for recurring prices in payment mode.
+
+### Checkout Error Modal
+
+When 3D Secure verification fails, a fund reserve hold is rejected, or any Stripe error occurs, the default behavior is a small inline error banner. For high-stakes funnels (especially 3DS + fund hold combos), editors can enable a full-screen error modal with a custom message and an optional link to an alternative checkout.
+
+**Config-only approach** — no scripting required:
+
+```jsonc
+{
+  "settings": {
+    "checkout": {
+      "require_3ds": true,
+      "error_modal": {
+        "enabled": true,                          // Show modal instead of just inline banner
+        "headline": "Payment issue",              // Default: "Payment unsuccessful"
+        "message": "Your bank requires extra verification that couldn't be completed.\n\nThis sometimes happens with certain cards. You can try a different card or use our alternative checkout.",
+        "alt_action": {                           // Optional — primary button linking to alternative checkout
+          "label": "Use alternative checkout",
+          "url": "https://pay.example.com/alt"
+        },
+        "dismiss_label": "Try a different card"   // Default: "Try again"
+      }
+    }
+  }
+}
+```
+
+| Field | Type | Default | Description |
+|---|---|---|---|
+| `enabled` | `boolean` | — | Required. When `true`, checkout errors show a modal overlay instead of only the inline banner |
+| `headline` | `string` | `"Payment unsuccessful"` | Modal title |
+| `message` | `string` | Falls back to Stripe error message | Body text. Supports `\n` for line breaks |
+| `alt_action.label` | `string` | — | Button text for alternative checkout link |
+| `alt_action.url` | `string` | — | URL the alternative button navigates to |
+| `dismiss_label` | `string` | `"Try again"` | Text on the dismiss/retry button |
+
+When `alt_action` is provided, the modal shows two buttons: the alt action as a themed primary button and the dismiss as a secondary. Without `alt_action`, the dismiss button is styled as primary.
+
+**Script-based approach** — full control via `checkout_error` event:
+
+```js
+const kit = window.CatalogKit.get();
+kit.on("checkout_error", (e) => {
+  // e.error_message — human-readable error string
+  // e.error_code    — Stripe error code when available (e.g. "card_declined", "authentication_required")
+  console.log("Checkout failed:", e.error_message);
+
+  // Custom handling: show your own modal, redirect, log to analytics, etc.
+  if (e.error_code === "authentication_required") {
+    window.location.href = "https://pay.example.com/alt";
+  }
+});
+```
+
+Both approaches work independently or together — the `checkout_error` event always fires when an error occurs, regardless of whether `error_modal` is enabled.
 
 ### Bring Your Own Billing Server
 
@@ -4514,3 +5034,18 @@ POST https://api.catalogkit.cc/events
 Batch up to 25 events: `POST /events/batch` with `{ "events": [...] }`
 
 **Note:** The catalog frontend uses same-origin paths (`/e`, `/e/batch`) proxied through CloudFront for reliability. The cross-origin API endpoints above are for server-side or external integrations.
+
+---
+
+## Troubleshooting
+
+### Local Dev Server Not Reflecting Changes
+
+If the `catalogs catalog dev` local preview is not picking up new features or schema changes, the CLI may be serving a stale renderer bundle. To fix this:
+
+1. **Stop the running dev server** (Ctrl+C in the terminal)
+2. **Force restart it:** `catalogs catalog dev your-catalog.ts`
+
+If you're using an AI agent, you can tell it: **"Force restart the catalog-kit CLI"** — the agent should kill the existing process and re-launch `catalogs catalog dev`.
+
+The CLI bundles a copy of the renderer at publish time. During local monorepo development, it falls back to the sibling `renderer/dist/` directory. If you've updated renderer source code, rebuild it first (`cd renderer && npm run build`) then restart the dev server.
